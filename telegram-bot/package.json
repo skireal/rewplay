@@ -1,0 +1,19 @@
+{
+  "name": "rewplay-telegram-bot",
+  "version": "1.0.0",
+  "description": "Telegram бот для каталога кассет Rewplay",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "keywords": ["telegram", "bot", "cassettes"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "node-telegram-bot-api": "^0.64.0",
+    "@supabase/supabase-js": "^2.38.0",
+    "dotenv": "^16.3.1"
+  }
+}

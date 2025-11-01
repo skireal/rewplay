@@ -1,0 +1,246 @@
+:root {
+  --primary: #ff6b6b;
+  --secondary: #4ecdc4;
+  --background: #f7f7f7;
+  --text: #2d3436;
+  --card-bg: #ffffff;
+  --border: #dfe6e9;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background-color: var(--background);
+  color: var(--text);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Контейнер */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* Шапка */
+.header {
+  background: var(--card-bg);
+  border-bottom: 2px solid var(--border);
+  padding: 20px 0;
+  margin-bottom: 40px;
+}
+
+.header__content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  font-size: 28px;
+  font-weight: bold;
+  color: var(--primary);
+}
+
+.nav {
+  display: flex;
+  gap: 30px;
+}
+
+.nav a {
+  font-weight: 500;
+  transition: color 0.3s;
+}
+
+.nav a:hover {
+  color: var(--primary);
+}
+
+/* Карточка кассеты */
+.cassette-card {
+  background: var(--card-bg);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.cassette-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.cassette-card__image {
+  width: 100%;
+  height: 250px;
+  object-fit: cover;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.cassette-card__content {
+  padding: 20px;
+}
+
+.cassette-card__artist {
+  font-size: 12px;
+  text-transform: uppercase;
+  color: #636e72;
+  margin-bottom: 5px;
+}
+
+.cassette-card__album {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.cassette-card__price {
+  font-size: 24px;
+  font-weight: bold;
+  color: var(--primary);
+  margin-top: 15px;
+}
+
+.cassette-card__year {
+  display: inline-block;
+  background: var(--secondary);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Сетка каталога */
+.catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 30px;
+  margin-bottom: 60px;
+}
+
+/* Кнопки */
+.btn {
+  display: inline-block;
+  padding: 12px 24px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn:hover {
+  background: #ee5a52;
+  transform: translateY(-2px);
+}
+
+.btn--secondary {
+  background: var(--secondary);
+}
+
+.btn--secondary:hover {
+  background: #45b7af;
+}
+
+/* Форма */
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.form-input,
+.form-textarea,
+.form-select {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  font-size: 16px;
+  transition: border-color 0.3s;
+}
+
+.form-input:focus,
+.form-textarea:focus,
+.form-select:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.form-textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+/* Тэги */
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.tag {
+  background: var(--border);
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Статус наличия */
+.stock-badge {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.stock-badge--in {
+  background: #d4edda;
+  color: #155724;
+}
+
+.stock-badge--out {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+/* Загрузка */
+.loading {
+  text-align: center;
+  padding: 60px 20px;
+  font-size: 18px;
+  color: #636e72;
+}
+
+/* Подвал */
+.footer {
+  background: var(--card-bg);
+  border-top: 2px solid var(--border);
+  padding: 40px 0;
+  margin-top: 80px;
+  text-align: center;
+  color: #636e72;
+}
