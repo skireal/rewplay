@@ -6,21 +6,37 @@ from typing import Dict, List
 from telegram import Bot
 from telegram.error import TelegramError
 from config import Config
+from database import Database
 
 
 class Notifier:
     """Handle notifications via Telegram"""
 
-    def __init__(self):
-        """Initialize notifier"""
+    def __init__(self, db: Database = None):
+        """
+        Initialize notifier
+
+        Args:
+            db: Database instance (optional). If provided, will use subscribers from DB.
+                If not provided, will use TELEGRAM_CHAT_IDS from config (backward compatible)
+        """
         self.enabled = Config.is_telegram_enabled()
         self.bot = None
         self.chat_ids = []
+        self.db = db
+        self.use_db_subscribers = db is not None
 
         if self.enabled:
             self.bot = Bot(token=Config.TELEGRAM_BOT_TOKEN)
-            self.chat_ids = Config.TELEGRAM_CHAT_IDS
-            print(f"📱 Telegram: отправка уведомлений {len(self.chat_ids)} получателям")
+
+            if self.use_db_subscribers:
+                # Use subscribers from database
+                self.chat_ids = self.db.get_active_subscribers()
+                print(f"📱 Telegram: отправка уведомлений {len(self.chat_ids)} подписчикам из БД")
+            else:
+                # Backward compatibility: use config
+                self.chat_ids = Config.TELEGRAM_CHAT_IDS
+                print(f"📱 Telegram: отправка уведомлений {len(self.chat_ids)} получателям из конфига")
 
     async def send_new_item_notification(self, item: Dict) -> bool:
         """
@@ -139,19 +155,38 @@ class Notifier:
 
 
 # Synchronous wrapper functions for easier use
-def notify_new_item(item: Dict) -> bool:
-    """Synchronous wrapper for sending new item notification"""
-    notifier = Notifier()
+def notify_new_item(item: Dict, db: Database = None) -> bool:
+    """
+    Synchronous wrapper for sending new item notification
+
+    Args:
+        item: Item dictionary
+        db: Database instance (optional). If provided, sends to DB subscribers.
+    """
+    notifier = Notifier(db=db)
     return asyncio.run(notifier.send_new_item_notification(item))
 
 
-def notify_summary(new_items_count: int, keywords: List[str]) -> bool:
-    """Synchronous wrapper for sending summary"""
-    notifier = Notifier()
+def notify_summary(new_items_count: int, keywords: List[str], db: Database = None) -> bool:
+    """
+    Synchronous wrapper for sending summary
+
+    Args:
+        new_items_count: Number of new items
+        keywords: List of keywords
+        db: Database instance (optional)
+    """
+    notifier = Notifier(db=db)
     return asyncio.run(notifier.send_summary(new_items_count, keywords))
 
 
-def notify_error(error_message: str) -> bool:
-    """Synchronous wrapper for sending error"""
-    notifier = Notifier()
+def notify_error(error_message: str, db: Database = None) -> bool:
+    """
+    Synchronous wrapper for sending error
+
+    Args:
+        error_message: Error message
+        db: Database instance (optional)
+    """
+    notifier = Notifier(db=db)
     return asyncio.run(notifier.send_error(error_message))

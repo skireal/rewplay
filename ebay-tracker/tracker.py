@@ -355,7 +355,8 @@ class EbayTracker:
                     # Send notification
                     if Config.is_telegram_enabled():
                         try:
-                            notify_new_item(item)
+                            # Pass database to use subscribers from DB
+                            notify_new_item(item, db=self.db)
                             self.db.mark_as_notified(item['item_id'])
                             time.sleep(1)  # Rate limiting
                         except Exception as e:
