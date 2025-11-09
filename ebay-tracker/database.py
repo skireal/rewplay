@@ -54,6 +54,24 @@ class Database:
                 ON seen_items(search_keyword)
             ''')
 
+            # Create subscribers table for public bot
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS subscribers (
+                    chat_id TEXT PRIMARY KEY,
+                    username TEXT,
+                    first_name TEXT,
+                    last_name TEXT,
+                    subscribed_at TEXT NOT NULL,
+                    active INTEGER DEFAULT 1,
+                    last_notification_at TEXT
+                )
+            ''')
+
+            cursor.execute('''
+                CREATE INDEX IF NOT EXISTS idx_active_subscribers
+                ON subscribers(active) WHERE active = 1
+            ''')
+
             conn.commit()
 
     def is_item_seen(self, item_id: str) -> bool:
@@ -176,3 +194,103 @@ class Database:
             conn.commit()
 
         return deleted
+
+    # Subscriber management methods
+    def add_subscriber(self, chat_id: str, username: str = None,
+                      first_name: str = None, last_name: str = None) -> bool:
+        """
+        Add or reactivate subscriber
+        Returns True if new subscriber, False if reactivated
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+
+            # Check if exists
+            cursor.execute('SELECT active FROM subscribers WHERE chat_id = ?', (chat_id,))
+            existing = cursor.fetchone()
+
+            if existing:
+                # Reactivate
+                cursor.execute(
+                    'UPDATE subscribers SET active = 1, subscribed_at = ? WHERE chat_id = ?',
+                    (datetime.now().isoformat(), chat_id)
+                )
+                conn.commit()
+                return False
+            else:
+                # New subscriber
+                cursor.execute('''
+                    INSERT INTO subscribers (chat_id, username, first_name, last_name, subscribed_at, active)
+                    VALUES (?, ?, ?, ?, ?, 1)
+                ''', (chat_id, username, first_name, last_name, datetime.now().isoformat()))
+                conn.commit()
+                return True
+
+    def remove_subscriber(self, chat_id: str) -> bool:
+        """
+        Deactivate subscriber
+        Returns True if subscriber was active, False otherwise
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                'UPDATE subscribers SET active = 0 WHERE chat_id = ? AND active = 1',
+                (chat_id,)
+            )
+            updated = cursor.rowcount > 0
+            conn.commit()
+            return updated
+
+    def is_subscribed(self, chat_id: str) -> bool:
+        """Check if chat_id is subscribed"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                'SELECT 1 FROM subscribers WHERE chat_id = ? AND active = 1',
+                (chat_id,)
+            )
+            return cursor.fetchone() is not None
+
+    def get_active_subscribers(self) -> List[str]:
+        """Get list of active subscriber chat IDs"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute('SELECT chat_id FROM subscribers WHERE active = 1')
+            return [row[0] for row in cursor.fetchall()]
+
+    def update_last_notification(self, chat_id: str):
+        """Update last notification timestamp for subscriber"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                'UPDATE subscribers SET last_notification_at = ? WHERE chat_id = ?',
+                (datetime.now().isoformat(), chat_id)
+            )
+            conn.commit()
+
+    def get_subscriber_stats(self) -> Dict:
+        """Get subscriber statistics"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+
+            # Total active
+            cursor.execute('SELECT COUNT(*) FROM subscribers WHERE active = 1')
+            active_count = cursor.fetchone()[0]
+
+            # Total ever subscribed
+            cursor.execute('SELECT COUNT(*) FROM subscribers')
+            total_count = cursor.fetchone()[0]
+
+            # Recent subscribers (last 7 days)
+            seven_days_ago = (datetime.now() - __import__('datetime').timedelta(days=7)).isoformat()
+            cursor.execute(
+                'SELECT COUNT(*) FROM subscribers WHERE subscribed_at >= ? AND active = 1',
+                (seven_days_ago,)
+            )
+            recent_count = cursor.fetchone()[0]
+
+            return {
+                'active_subscribers': active_count,
+                'total_subscribers': total_count,
+                'recent_subscribers': recent_count
+            }
