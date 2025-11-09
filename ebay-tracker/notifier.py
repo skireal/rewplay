@@ -15,48 +15,52 @@ class Notifier:
         """Initialize notifier"""
         self.enabled = Config.is_telegram_enabled()
         self.bot = None
+        self.chat_ids = []
 
         if self.enabled:
             self.bot = Bot(token=Config.TELEGRAM_BOT_TOKEN)
-            self.chat_id = Config.TELEGRAM_CHAT_ID
+            self.chat_ids = Config.TELEGRAM_CHAT_IDS
+            print(f"📱 Telegram: отправка уведомлений {len(self.chat_ids)} получателям")
 
     async def send_new_item_notification(self, item: Dict) -> bool:
         """
-        Send notification about new item
-        Returns True if sent successfully, False otherwise
+        Send notification about new item to all recipients
+        Returns True if sent successfully to at least one recipient
         """
         if not self.enabled:
             print("⚠️  Telegram notifications disabled (no credentials)")
             return False
 
-        try:
-            message = self._format_item_message(item)
+        message = self._format_item_message(item)
+        success_count = 0
 
-            if item.get('image_url'):
-                # Send with image
-                await self.bot.send_photo(
-                    chat_id=self.chat_id,
-                    photo=item['image_url'],
-                    caption=message,
-                    parse_mode='HTML'
-                )
-            else:
-                # Send text only
-                await self.bot.send_message(
-                    chat_id=self.chat_id,
-                    text=message,
-                    parse_mode='HTML',
-                    disable_web_page_preview=False
-                )
+        for chat_id in self.chat_ids:
+            try:
+                if item.get('image_url'):
+                    # Send with image
+                    await self.bot.send_photo(
+                        chat_id=chat_id,
+                        photo=item['image_url'],
+                        caption=message,
+                        parse_mode='HTML'
+                    )
+                else:
+                    # Send text only
+                    await self.bot.send_message(
+                        chat_id=chat_id,
+                        text=message,
+                        parse_mode='HTML',
+                        disable_web_page_preview=False
+                    )
 
-            return True
+                success_count += 1
 
-        except TelegramError as e:
-            print(f"❌ Telegram error: {e}")
-            return False
-        except Exception as e:
-            print(f"❌ Unexpected error: {e}")
-            return False
+            except TelegramError as e:
+                print(f"❌ Telegram error for chat_id {chat_id}: {e}")
+            except Exception as e:
+                print(f"❌ Unexpected error for chat_id {chat_id}: {e}")
+
+        return success_count > 0
 
     def _format_item_message(self, item: Dict) -> str:
         """Format item details as Telegram message"""
@@ -85,46 +89,53 @@ class Notifier:
         return "\n".join(parts)
 
     async def send_summary(self, new_items_count: int, keywords: List[str]) -> bool:
-        """Send summary notification"""
+        """Send summary notification to all recipients"""
         if not self.enabled or new_items_count == 0:
             return False
 
-        try:
-            message = (
-                f"📊 <b>Сводка поиска eBay</b>\n\n"
-                f"✨ Найдено новых лотов: <b>{new_items_count}</b>\n"
-                f"🔍 Ключевые слова: {', '.join(keywords)}"
-            )
+        message = (
+            f"📊 <b>Сводка поиска eBay</b>\n\n"
+            f"✨ Найдено новых лотов: <b>{new_items_count}</b>\n"
+            f"🔍 Ключевые слова: {', '.join(keywords)}"
+        )
 
-            await self.bot.send_message(
-                chat_id=self.chat_id,
-                text=message,
-                parse_mode='HTML'
-            )
-            return True
+        success_count = 0
 
-        except TelegramError as e:
-            print(f"❌ Telegram error: {e}")
-            return False
+        for chat_id in self.chat_ids:
+            try:
+                await self.bot.send_message(
+                    chat_id=chat_id,
+                    text=message,
+                    parse_mode='HTML'
+                )
+                success_count += 1
+
+            except TelegramError as e:
+                print(f"❌ Telegram error for chat_id {chat_id}: {e}")
+
+        return success_count > 0
 
     async def send_error(self, error_message: str) -> bool:
-        """Send error notification"""
+        """Send error notification to all recipients"""
         if not self.enabled:
             return False
 
-        try:
-            message = f"❌ <b>Ошибка eBay Tracker</b>\n\n{error_message}"
+        message = f"❌ <b>Ошибка eBay Tracker</b>\n\n{error_message}"
+        success_count = 0
 
-            await self.bot.send_message(
-                chat_id=self.chat_id,
-                text=message,
-                parse_mode='HTML'
-            )
-            return True
+        for chat_id in self.chat_ids:
+            try:
+                await self.bot.send_message(
+                    chat_id=chat_id,
+                    text=message,
+                    parse_mode='HTML'
+                )
+                success_count += 1
 
-        except TelegramError as e:
-            print(f"❌ Failed to send error notification: {e}")
-            return False
+            except TelegramError as e:
+                print(f"❌ Failed to send error notification to {chat_id}: {e}")
+
+        return success_count > 0
 
 
 # Synchronous wrapper functions for easier use

@@ -16,7 +16,11 @@ class Config:
 
     # Telegram settings
     TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '')
-    TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID', '')
+    # Support multiple chat IDs (comma-separated)
+    _chat_ids = os.getenv('TELEGRAM_CHAT_ID', '')
+    TELEGRAM_CHAT_IDS = [chat_id.strip() for chat_id in _chat_ids.split(',') if chat_id.strip()]
+    # For backward compatibility
+    TELEGRAM_CHAT_ID = TELEGRAM_CHAT_IDS[0] if TELEGRAM_CHAT_IDS else ''
 
     # Search settings
     SEARCH_KEYWORDS = [kw.strip() for kw in os.getenv('SEARCH_KEYWORDS', '').split(',') if kw.strip()]
