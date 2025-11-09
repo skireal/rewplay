@@ -10,6 +10,7 @@ Rewplay — это полнофункциональное решение для 
 - 🤖 **Telegram бот** — просмотр ассортимента и поиск
 - 💾 **Единая БД** (Supabase) — одна база для всех клиентов
 - 📊 **Админка** — простое управление товарами
+- 🔍 **eBay Tracker** (Python) — автоматический мониторинг новых лотов на eBay
 
 ## 🏗 Архитектура
 
@@ -53,10 +54,18 @@ rewplay/
 │   ├── types/           # TypeScript типы
 │   └── package.json
 │
-└── telegram-bot/         # Telegram бот
-    ├── index.js         # Основной файл бота
-    ├── package.json
-    └── README.md
+├── telegram-bot/         # Telegram бот
+│   ├── index.js         # Основной файл бота
+│   ├── package.json
+│   └── README.md
+│
+└── ebay-tracker/         # Мониторинг eBay (Python)
+    ├── tracker.py       # Основной скрипт
+    ├── config.py        # Конфигурация
+    ├── database.py      # SQLite база
+    ├── notifier.py      # Telegram уведомления
+    ├── requirements.txt # Зависимости
+    └── README.md        # Документация
 ```
 
 ## 🚀 Быстрый старт
@@ -112,6 +121,28 @@ cp .env.example .env
 # Запустите бота
 npm start
 ```
+
+### 4. Запуск eBay Tracker
+
+```bash
+cd ebay-tracker
+
+# Создайте виртуальное окружение
+python3 -m venv venv
+source venv/bin/activate
+
+# Установите зависимости
+pip install -r requirements.txt
+
+# Настройте конфигурацию
+cp .env.example .env
+nano .env  # Добавьте eBay App ID и другие настройки
+
+# Запустите трекер
+./run.sh
+```
+
+См. [ebay-tracker/README.md](./ebay-tracker/README.md) для подробной документации.
 
 ## 📝 Заполнение БД
 
@@ -211,6 +242,7 @@ vercel
 - [Database Schema](./database/README.md) - Полное описание БД
 - [Website](./website/README.md) - Next.js приложение (если создадите)
 - [Telegram Bot](./telegram-bot/README.md) - Документация бота
+- [eBay Tracker](./ebay-tracker/README.md) - Мониторинг лотов на eBay
 
 ## 🔮 Идеи для развития
 
