@@ -103,8 +103,18 @@ class EbayTracker:
                 conditions = '|'.join(Config.CONDITION_FILTER)
                 filters.append(f'conditions:{{{conditions}}}')
 
+            # Add location filters
+            if Config.ITEM_LOCATION_COUNTRY:
+                filters.append(f'itemLocationCountry:{Config.ITEM_LOCATION_COUNTRY}')
+
             if filters:
                 params['filter'] = ','.join(filters)
+
+            # Add buyerPostalCode for proximity search (separate parameter in Browse API)
+            if Config.ITEM_LOCATION_POSTAL_CODE:
+                params['buyerPostalCode'] = Config.ITEM_LOCATION_POSTAL_CODE
+                if Config.ITEM_LOCATION_RADIUS:
+                    params['searchRadius'] = Config.ITEM_LOCATION_RADIUS
 
             response = requests.get(
                 f"{Config.EBAY_BROWSE_API_URL}/item_summary/search",
@@ -159,6 +169,21 @@ class EbayTracker:
                 for i, condition in enumerate(Config.CONDITION_FILTER):
                     params[f'itemFilter({filter_index}).value({i})'] = condition
                 filter_index += 1
+
+            # Location filters
+            if Config.LOCATED_IN:
+                params[f'itemFilter({filter_index}).name'] = 'LocatedIn'
+                params[f'itemFilter({filter_index}).value'] = Config.LOCATED_IN
+                filter_index += 1
+
+            if Config.SHIPS_TO:
+                params[f'itemFilter({filter_index}).name'] = 'AvailableTo'
+                params[f'itemFilter({filter_index}).value'] = Config.SHIPS_TO
+                filter_index += 1
+
+            # Buyer postal code for proximity search
+            if Config.ITEM_LOCATION_POSTAL_CODE:
+                params['buyerPostalCode'] = Config.ITEM_LOCATION_POSTAL_CODE
 
             response = requests.get(
                 Config.EBAY_FINDING_API_URL,
