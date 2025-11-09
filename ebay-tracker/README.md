@@ -17,18 +17,40 @@
 
 ### 1. Установка
 
+**Linux / macOS:**
+
 ```bash
 cd ebay-tracker
 
 # Создайте виртуальное окружение
 python3 -m venv venv
-source venv/bin/activate  # Linux/Mac
-# или
-venv\Scripts\activate  # Windows
+
+# Активируйте
+source venv/bin/activate
 
 # Установите зависимости
 pip install -r requirements.txt
 ```
+
+**Windows (PowerShell):**
+
+```powershell
+cd ebay-tracker
+
+# Создайте виртуальное окружение
+python -m venv venv
+
+# Активируйте (PowerShell)
+venv\Scripts\Activate.ps1
+
+# Если ошибка ExecutionPolicy, выполните:
+# Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+# Установите зависимости
+pip install -r requirements.txt
+```
+
+**Примечание для Windows:** Используйте `python` вместо `python3`. Если команда не найдена, установите Python с https://www.python.org/downloads/ (не забудьте отметить "Add Python to PATH").
 
 ### 2. Настройка eBay API
 
@@ -99,15 +121,20 @@ CONDITION_FILTER=NEW,LIKE_NEW,USED_EXCELLENT
 
 ### 5. Запуск
 
-**Вариант 1: Через скрипт (рекомендуется)**
+**Linux / macOS (через скрипт):**
 
 ```bash
 ./run.sh
 ```
 
-**Вариант 2: Напрямую**
+**Windows или прямой запуск:**
 
 ```bash
+# Активируйте виртуальное окружение если еще не активировано
+# Linux/Mac: source venv/bin/activate
+# Windows: venv\Scripts\Activate.ps1
+
+# Запустите tracker
 python tracker.py
 ```
 
