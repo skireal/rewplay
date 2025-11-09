@@ -1,8 +1,10 @@
 # Environment variables
 .env
 
-# Database
+# Database (local only)
+# Note: db/tracker.db is tracked for GitHub Actions persistence
 *.db
+!db/tracker.db
 *.sqlite
 *.sqlite3
 
