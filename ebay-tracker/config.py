@@ -33,6 +33,13 @@ class Config:
     # Condition filter
     CONDITION_FILTER = [c.strip() for c in os.getenv('CONDITION_FILTER', '').split(',') if c.strip()]
 
+    # Location filters
+    ITEM_LOCATION_COUNTRY = os.getenv('ITEM_LOCATION_COUNTRY', '')
+    ITEM_LOCATION_POSTAL_CODE = os.getenv('ITEM_LOCATION_POSTAL_CODE', '')
+    ITEM_LOCATION_RADIUS = os.getenv('ITEM_LOCATION_RADIUS', '')
+    LOCATED_IN = os.getenv('LOCATED_IN', '')
+    SHIPS_TO = os.getenv('SHIPS_TO', '')
+
     # Database
     DB_PATH = os.path.join(os.path.dirname(__file__), 'db', 'tracker.db')
 
