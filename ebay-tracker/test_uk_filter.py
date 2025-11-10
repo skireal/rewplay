@@ -4,9 +4,12 @@ Test script to verify UK location filtering
 """
 import os
 import sys
+from dotenv import load_dotenv
 
-# Set test environment variables
-os.environ['EBAY_APP_ID'] = os.getenv('EBAY_APP_ID', '')
+# Load .env file FIRST
+load_dotenv()
+
+# Then override only test-specific variables
 os.environ['EBAY_SITE_ID'] = 'EBAY_UK'
 os.environ['LOCATED_IN'] = 'GB'
 os.environ['SEARCH_KEYWORDS'] = 'joy division cassette'
