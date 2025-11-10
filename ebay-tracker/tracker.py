@@ -296,6 +296,36 @@ class EbayTracker:
                             dt = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
                             item['listing_date'] = dt.strftime('%Y-%m-%d %H:%M')
 
+                    # Location (for additional filtering)
+                    item_location = ''
+                    if 'location' in item_data:
+                        item_location = item_data['location'][0]
+                    elif 'country' in item_data:
+                        item_location = item_data['country'][0]
+
+                    # Additional location filter check (eBay API filter is not always reliable)
+                    if Config.LOCATED_IN:
+                        # Check if item location matches the filter
+                        # Location can be country code (GB, US) or full location string
+                        located_in_codes = [loc.strip().upper() for loc in Config.LOCATED_IN.split(',')]
+                        location_matches = False
+
+                        for loc_code in located_in_codes:
+                            if loc_code in item_location.upper():
+                                location_matches = True
+                                break
+                            # Also check common country names
+                            if loc_code == 'GB' and ('UNITED KINGDOM' in item_location.upper() or 'UK' in item_location.upper()):
+                                location_matches = True
+                                break
+                            if loc_code == 'US' and ('UNITED STATES' in item_location.upper() or 'USA' in item_location.upper()):
+                                location_matches = True
+                                break
+
+                        if not location_matches and item_location:
+                            # Skip this item - location doesn't match filter
+                            continue
+
                     items.append(item)
 
                 except Exception as e:
