@@ -238,6 +238,42 @@ class EbayTracker:
                 # Listing date (not directly available, use current time)
                 item['listing_date'] = datetime.now().strftime('%Y-%m-%d %H:%M')
 
+                # Location filtering for Browse API
+                if Config.LOCATED_IN:
+                    item_location = ''
+                    item_country = ''
+
+                    # Browse API has itemLocation field
+                    if 'itemLocation' in item_data:
+                        loc_data = item_data['itemLocation']
+                        if 'country' in loc_data:
+                            item_country = loc_data['country']
+                        if 'city' in loc_data:
+                            item_location = loc_data.get('city', '')
+                        if 'postalCode' in loc_data:
+                            item_location += ' ' + loc_data.get('postalCode', '')
+
+                    full_location = f"{item_location} {item_country}".strip()
+
+                    # Check if location matches LOCATED_IN filter
+                    located_in_codes = [loc.strip().upper() for loc in Config.LOCATED_IN.split(',')]
+                    location_matches = False
+
+                    if full_location:
+                        for loc_code in located_in_codes:
+                            if loc_code in full_location.upper():
+                                location_matches = True
+                                break
+                            # Check common country names
+                            if loc_code == 'GB' and ('UNITED KINGDOM' in full_location.upper() or 'UK' in full_location.upper()):
+                                location_matches = True
+                                break
+
+                    # STRICT MODE: skip items that don't match location filter
+                    if not location_matches:
+                        print(f"      🚫 Filtered out (location: '{full_location}'): {item['title'][:50]}")
+                        continue
+
                 items.append(item)
 
             except Exception as e:
