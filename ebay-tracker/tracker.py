@@ -298,10 +298,22 @@ class EbayTracker:
 
                     # Location (for additional filtering)
                     item_location = ''
+                    item_country = ''
+
+                    # Try multiple location fields
                     if 'location' in item_data:
                         item_location = item_data['location'][0]
-                    elif 'country' in item_data:
-                        item_location = item_data['country'][0]
+                    if 'country' in item_data:
+                        item_country = item_data['country'][0]
+
+                    # Also check shippingInfo for location
+                    if 'shippingInfo' in item_data:
+                        shipping_info = item_data['shippingInfo'][0]
+                        if 'shipToLocations' in shipping_info:
+                            item_country = shipping_info['shipToLocations'][0] if not item_country else item_country
+
+                    # Combine location data
+                    full_location = f"{item_location} {item_country}".strip()
 
                     # Additional location filter check (eBay API filter is not always reliable)
                     if Config.LOCATED_IN:
@@ -310,20 +322,24 @@ class EbayTracker:
                         located_in_codes = [loc.strip().upper() for loc in Config.LOCATED_IN.split(',')]
                         location_matches = False
 
-                        for loc_code in located_in_codes:
-                            if loc_code in item_location.upper():
-                                location_matches = True
-                                break
-                            # Also check common country names
-                            if loc_code == 'GB' and ('UNITED KINGDOM' in item_location.upper() or 'UK' in item_location.upper()):
-                                location_matches = True
-                                break
-                            if loc_code == 'US' and ('UNITED STATES' in item_location.upper() or 'USA' in item_location.upper()):
-                                location_matches = True
-                                break
+                        if full_location:
+                            for loc_code in located_in_codes:
+                                if loc_code in full_location.upper():
+                                    location_matches = True
+                                    break
+                                # Also check common country names
+                                if loc_code == 'GB' and ('UNITED KINGDOM' in full_location.upper() or 'UK' in full_location.upper()):
+                                    location_matches = True
+                                    break
+                                if loc_code == 'US' and ('UNITED STATES' in full_location.upper() or 'USA' in full_location.upper()):
+                                    location_matches = True
+                                    break
 
-                        if not location_matches and item_location:
-                            # Skip this item - location doesn't match filter
+                        # STRICT MODE: If LOCATED_IN is set and location doesn't match, skip item
+                        # This includes items with no location data
+                        if not location_matches:
+                            # Debug: uncomment to see filtered items
+                            # print(f"      🚫 Filtered out (location: '{full_location}'): {item['title'][:50]}")
                             continue
 
                     items.append(item)
