@@ -338,8 +338,8 @@ class EbayTracker:
                         # STRICT MODE: If LOCATED_IN is set and location doesn't match, skip item
                         # This includes items with no location data
                         if not location_matches:
-                            # Debug: uncomment to see filtered items
-                            # print(f"      🚫 Filtered out (location: '{full_location}'): {item['title'][:50]}")
+                            # Debug output to see filtered items
+                            print(f"      🚫 Filtered out (location: '{full_location}'): {item['title'][:50]}")
                             continue
 
                     items.append(item)
