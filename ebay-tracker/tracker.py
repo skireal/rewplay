@@ -238,6 +238,14 @@ class EbayTracker:
                 # Listing date (not directly available, use current time)
                 item['listing_date'] = datetime.now().strftime('%Y-%m-%d %H:%M')
 
+                # Listing type (Browse API uses buyingOptions)
+                if 'buyingOptions' in item_data:
+                    buying_options = item_data['buyingOptions']
+                    if 'AUCTION' in buying_options:
+                        item['listing_type'] = 'Auction'
+                    elif 'FIXED_PRICE' in buying_options or 'BEST_OFFER' in buying_options:
+                        item['listing_type'] = 'FixedPrice'
+
                 # Location filtering for Browse API
                 if Config.LOCATED_IN:
                     item_location = ''
@@ -323,7 +331,7 @@ class EbayTracker:
                     if 'sellerInfo' in item_data:
                         item['seller'] = item_data['sellerInfo'][0].get('sellerUserName', [''])[0]
 
-                    # Listing date
+                    # Listing date and type
                     if 'listingInfo' in item_data:
                         listing_info = item_data['listingInfo'][0]
                         if 'startTime' in listing_info:
@@ -331,6 +339,9 @@ class EbayTracker:
                             start_time = listing_info['startTime'][0]
                             dt = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
                             item['listing_date'] = dt.strftime('%Y-%m-%d %H:%M')
+                        # Listing type: Auction, FixedPrice, etc.
+                        if 'listingType' in listing_info:
+                            item['listing_type'] = listing_info['listingType'][0]
 
                     # Location (for additional filtering)
                     item_location = ''

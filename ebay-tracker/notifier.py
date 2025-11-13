@@ -2,7 +2,8 @@
 Notification module for sending alerts about new eBay items
 """
 import asyncio
-from typing import Dict, List
+import requests
+from typing import Dict, List, Optional
 from telegram import Bot
 from telegram.error import TelegramError
 from config import Config
@@ -78,6 +79,22 @@ class Notifier:
 
         return success_count > 0
 
+    def _get_exchange_rate(self) -> Optional[float]:
+        """Get GBP to RUB exchange rate from CBR API"""
+        try:
+            # Use Central Bank of Russia API
+            response = requests.get('https://www.cbr-xml-daily.ru/latest.js', timeout=5)
+            if response.status_code == 200:
+                data = response.json()
+                # API returns rates relative to RUB
+                # GBP rate shows how many RUB for 1 GBP
+                if 'rates' in data and 'GBP' in data['rates']:
+                    # rates.GBP is RUB per 1 GBP
+                    return 1.0 / data['rates']['GBP']  # Convert to GBP->RUB
+            return None
+        except Exception:
+            return None
+
     def _format_item_message(self, item: Dict) -> str:
         """Format item details as Telegram message"""
         parts = [
@@ -85,8 +102,31 @@ class Notifier:
             f"📦 <b>{item['title']}</b>\n"
         ]
 
+        # Listing type
+        listing_type = item.get('listing_type', '')
+        if listing_type:
+            if listing_type == 'Auction':
+                parts.append("🔨 <b>Аукцион</b>")
+            elif listing_type == 'FixedPrice':
+                parts.append("🛒 <b>Buy It Now</b>")
+
+        # Price with conversion for Buy It Now
         if item.get('price') and item.get('currency'):
-            parts.append(f"💰 {item['price']} {item['currency']}")
+            price_str = f"💰 {item['price']} {item['currency']}"
+
+            # For Buy It Now, add RUB price divided by 2
+            if listing_type == 'FixedPrice' and item.get('currency') == 'GBP':
+                try:
+                    gbp_price = float(item['price'])
+                    exchange_rate = self._get_exchange_rate()
+                    if exchange_rate:
+                        rub_price = gbp_price * exchange_rate
+                        per_person = rub_price / 2
+                        price_str += f"\n💵 ≈ {per_person:,.0f} ₽ на человека (курс: {exchange_rate:.1f} ₽/£)"
+                except (ValueError, TypeError):
+                    pass
+
+            parts.append(price_str)
 
         if item.get('condition'):
             parts.append(f"📋 Состояние: {item['condition']}")
