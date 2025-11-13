@@ -68,6 +68,8 @@ jobs:
           MIN_PRICE: ${{ secrets.MIN_PRICE }}
           MAX_PRICE: ${{ secrets.MAX_PRICE }}
           CONDITION_FILTER: ${{ secrets.CONDITION_FILTER }}
+          LOCATED_IN: ${{ secrets.LOCATED_IN }}
+          SHIPS_TO: ${{ secrets.SHIPS_TO }}
         run: |
           cd ebay-tracker
           python tracker.py
