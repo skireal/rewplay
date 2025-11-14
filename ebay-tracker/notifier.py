@@ -3,6 +3,7 @@ Notification module for sending alerts about new eBay items
 """
 import asyncio
 import requests
+from datetime import datetime
 from typing import Dict, List, Optional
 from telegram import Bot
 from telegram.error import TelegramError
@@ -95,6 +96,30 @@ class Notifier:
         except Exception:
             return None
 
+    def _format_time_remaining(self, end_time_str: str) -> Optional[str]:
+        """Format time remaining until auction ends"""
+        try:
+            # Parse ISO format: 2024-11-08T12:30:00.000Z
+            end_time = datetime.fromisoformat(end_time_str.replace('Z', '+00:00'))
+            now = datetime.now(end_time.tzinfo)
+            remaining = end_time - now
+
+            if remaining.total_seconds() <= 0:
+                return "Завершен"
+
+            days = remaining.days
+            hours, remainder = divmod(remaining.seconds, 3600)
+            minutes, _ = divmod(remainder, 60)
+
+            if days > 0:
+                return f"{days}д {hours}ч"
+            elif hours > 0:
+                return f"{hours}ч {minutes}мин"
+            else:
+                return f"{minutes}мин"
+        except Exception:
+            return None
+
     def _format_item_message(self, item: Dict) -> str:
         """Format item details as Telegram message"""
         parts = [
@@ -106,27 +131,55 @@ class Notifier:
         listing_type = item.get('listing_type', '')
         if listing_type:
             if listing_type == 'Auction':
-                parts.append("🔨 <b>Аукцион</b>")
+                auction_str = "🔨 <b>Аукцион</b>"
+                # Add time remaining
+                if item.get('end_time'):
+                    time_remaining = self._format_time_remaining(item['end_time'])
+                    if time_remaining:
+                        auction_str += f"\n⏰ Осталось: <b>{time_remaining}</b>"
+                parts.append(auction_str)
             elif listing_type == 'FixedPrice':
                 parts.append("🛒 <b>Buy It Now</b>")
 
-        # Price with conversion for Buy It Now
+        # Price with conversion and shipping
         if item.get('price') and item.get('currency'):
-            price_str = f"💰 {item['price']} {item['currency']}"
+            price_str = f"💰 "
 
-            # For Buy It Now, add RUB price divided by 2
-            if listing_type == 'FixedPrice' and item.get('currency') == 'GBP':
+            # For auctions, show "Текущая ставка"
+            if listing_type == 'Auction':
+                price_str += f"Текущая ставка: {item['price']} {item['currency']}"
+                # Show bid count
+                if item.get('bid_count'):
+                    price_str += f"\n📊 Ставок: {item['bid_count']}"
+            else:
+                price_str += f"{item['price']} {item['currency']}"
+
+            parts.append(price_str)
+
+            # Shipping cost
+            shipping_cost = 0
+            if item.get('shipping_cost'):
                 try:
-                    gbp_price = float(item['price'])
-                    exchange_rate = self._get_exchange_rate()
-                    if exchange_rate:
-                        rub_price = gbp_price * exchange_rate
-                        per_person = rub_price / 2
-                        price_str += f"\n💵 ≈ {per_person:,.0f} ₽ на человека (курс: {exchange_rate:.1f} ₽/£)"
+                    shipping_cost = float(item['shipping_cost'])
+                    if shipping_cost > 0:
+                        parts.append(f"🚚 Доставка: ~{shipping_cost:.2f} {item.get('shipping_currency', item['currency'])}")
                 except (ValueError, TypeError):
                     pass
 
-            parts.append(price_str)
+            # For Buy It Now, add RUB price divided by 2 (with shipping)
+            if listing_type == 'FixedPrice' and item.get('currency') == 'GBP':
+                try:
+                    gbp_price = float(item['price'])
+                    total_gbp = gbp_price + shipping_cost
+                    exchange_rate = self._get_exchange_rate()
+                    if exchange_rate:
+                        rub_price = total_gbp * exchange_rate
+                        per_person = rub_price / 2
+                        shipping_note = " (с доставкой)" if shipping_cost > 0 else ""
+                        parts.append(f"💵 ≈ {per_person:,.0f} ₽ на человека{shipping_note}")
+                        parts.append(f"📈 Курс: {exchange_rate:.1f} ₽/£")
+                except (ValueError, TypeError):
+                    pass
 
         if item.get('condition'):
             parts.append(f"📋 Состояние: {item['condition']}")

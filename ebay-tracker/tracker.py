@@ -246,6 +246,20 @@ class EbayTracker:
                     elif 'FIXED_PRICE' in buying_options or 'BEST_OFFER' in buying_options:
                         item['listing_type'] = 'FixedPrice'
 
+                # Auction details (Browse API)
+                if 'itemAffiliateWebUrl' in item_data or 'itemEndDate' in item_data:
+                    if 'itemEndDate' in item_data:
+                        item['end_time'] = item_data['itemEndDate']
+                if 'bidCount' in item_data:
+                    item['bid_count'] = str(item_data['bidCount'])
+
+                # Shipping info (Browse API)
+                if 'shippingOptions' in item_data and len(item_data['shippingOptions']) > 0:
+                    shipping = item_data['shippingOptions'][0]
+                    if 'shippingCost' in shipping:
+                        item['shipping_cost'] = shipping['shippingCost'].get('value', '0')
+                        item['shipping_currency'] = shipping['shippingCost'].get('currency', '')
+
                 # Location filtering for Browse API
                 if Config.LOCATED_IN:
                     item_location = ''
@@ -342,6 +356,23 @@ class EbayTracker:
                         # Listing type: Auction, FixedPrice, etc.
                         if 'listingType' in listing_info:
                             item['listing_type'] = listing_info['listingType'][0]
+                        # End time for auctions
+                        if 'endTime' in listing_info:
+                            item['end_time'] = listing_info['endTime'][0]
+
+                    # Bid count for auctions
+                    if 'sellingStatus' in item_data:
+                        selling_status = item_data['sellingStatus'][0]
+                        if 'bidCount' in selling_status:
+                            item['bid_count'] = selling_status['bidCount'][0]
+
+                    # Shipping info
+                    if 'shippingInfo' in item_data:
+                        shipping_info = item_data['shippingInfo'][0]
+                        if 'shippingServiceCost' in shipping_info:
+                            shipping_cost = shipping_info['shippingServiceCost'][0]
+                            item['shipping_cost'] = shipping_cost.get('__value__', '0')
+                            item['shipping_currency'] = shipping_cost.get('@currencyId', '')
 
                     # Location (for additional filtering)
                     item_location = ''
