@@ -63,6 +63,7 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           SEARCH_KEYWORDS: ${{ secrets.SEARCH_KEYWORDS }}
+          EXCLUDE_KEYWORDS: ${{ secrets.EXCLUDE_KEYWORDS }}
           EBAY_SITE_ID: ${{ secrets.EBAY_SITE_ID }}
           MAX_RESULTS: ${{ secrets.MAX_RESULTS }}
           MIN_PRICE: ${{ secrets.MIN_PRICE }}
