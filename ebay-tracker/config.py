@@ -25,6 +25,9 @@ class Config:
     # Search settings
     SEARCH_KEYWORDS = [kw.strip() for kw in os.getenv('SEARCH_KEYWORDS', '').split(',') if kw.strip()]
 
+    # Exclude keywords (negative filter)
+    EXCLUDE_KEYWORDS = [kw.strip().lower() for kw in os.getenv('EXCLUDE_KEYWORDS', '').split(',') if kw.strip()]
+
     # eBay settings
     EBAY_SITE_ID = os.getenv('EBAY_SITE_ID', 'EBAY_US')
     CHECK_INTERVAL = int(os.getenv('CHECK_INTERVAL', '30'))

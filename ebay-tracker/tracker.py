@@ -260,6 +260,20 @@ class EbayTracker:
                         item['shipping_cost'] = shipping['shippingCost'].get('value', '0')
                         item['shipping_currency'] = shipping['shippingCost'].get('currency', '')
 
+                # Exclude keywords filter
+                excluded = False
+                if Config.EXCLUDE_KEYWORDS:
+                    title_lower = item['title'].lower()
+                    for exclude_word in Config.EXCLUDE_KEYWORDS:
+                        if exclude_word in title_lower:
+                            # Skip this item - contains excluded keyword
+                            print(f"      ⛔ Excluded ('{exclude_word}'): {item['title'][:50]}")
+                            excluded = True
+                            break
+
+                if excluded:
+                    continue
+
                 # Location filtering for Browse API
                 if Config.LOCATED_IN:
                     item_location = ''
@@ -373,6 +387,20 @@ class EbayTracker:
                             shipping_cost = shipping_info['shippingServiceCost'][0]
                             item['shipping_cost'] = shipping_cost.get('__value__', '0')
                             item['shipping_currency'] = shipping_cost.get('@currencyId', '')
+
+                    # Exclude keywords filter
+                    excluded = False
+                    if Config.EXCLUDE_KEYWORDS:
+                        title_lower = item['title'].lower()
+                        for exclude_word in Config.EXCLUDE_KEYWORDS:
+                            if exclude_word in title_lower:
+                                # Skip this item - contains excluded keyword
+                                print(f"      ⛔ Excluded ('{exclude_word}'): {item['title'][:50]}")
+                                excluded = True
+                                break
+
+                    if excluded:
+                        continue
 
                     # Location (for additional filtering)
                     item_location = ''
