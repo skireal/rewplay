@@ -304,6 +304,14 @@ class EbayTracker:
                             if loc_code == 'GB' and ('UNITED KINGDOM' in full_location.upper() or 'UK' in full_location.upper()):
                                 location_matches = True
                                 break
+                    else:
+                        # If no location data, trust the marketplace filter
+                        # When searching EBAY_GB, items without location are likely from GB
+                        if 'GB' in [loc.strip().upper() for loc in Config.LOCATED_IN.split(',')]:
+                            marketplace_id = self._get_marketplace_id()
+                            if marketplace_id == 'EBAY_GB':
+                                location_matches = True
+                                print(f"      ℹ️  No location data, trusting marketplace (EBAY_GB): {item['title'][:50]}")
 
                     # STRICT MODE: skip items that don't match location filter
                     if not location_matches:
@@ -440,6 +448,14 @@ class EbayTracker:
                                 if loc_code == 'US' and ('UNITED STATES' in full_location.upper() or 'USA' in full_location.upper()):
                                     location_matches = True
                                     break
+                        else:
+                            # If no location data, trust the marketplace filter
+                            # Finding API: LOCATED_IN filter at API level should have already filtered
+                            # But if we're looking for GB and have no location data, allow it through
+                            if 'GB' in [loc.strip().upper() for loc in Config.LOCATED_IN.split(',')]:
+                                if Config.EBAY_SITE_ID == 'EBAY_UK':
+                                    location_matches = True
+                                    print(f"      ℹ️  No location data, trusting marketplace (EBAY_UK): {item['title'][:50]}")
 
                         # STRICT MODE: If LOCATED_IN is set and location doesn't match, skip item
                         # This includes items with no location data
