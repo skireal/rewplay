@@ -23,11 +23,20 @@ def debug_search(keyword):
 
     tracker = EbayTracker()
 
-    # Try Finding API first (simpler to debug)
-    print("\n📡 Calling Finding API...")
-    items = tracker.search_finding_api(keyword)
+    # Try Browse API (Finding API returned 500 error)
+    print("\n📡 Calling Browse API...")
+    items = tracker.search_browse_api(keyword)
 
     print(f"\n✅ Found {len(items)} items that passed filters")
+
+    # Also show if any keywords would match
+    print("\n🔍 Checking EXCLUDE_KEYWORDS logic:")
+    test_title = "The Cure - Cassette Tape"
+    for exclude_word in Config.EXCLUDE_KEYWORDS:
+        if exclude_word in test_title.lower():
+            print(f"  ⚠️  '{exclude_word}' WOULD match in '{test_title}'")
+        else:
+            print(f"  ✅ '{exclude_word}' would NOT match in '{test_title}'")
 
     # Show first 3 items in detail
     for i, item in enumerate(items[:3], 1):
