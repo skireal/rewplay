@@ -104,8 +104,14 @@ class EbayTracker:
                 filters.append(f'conditions:{{{conditions}}}')
 
             # Add location filters
-            if Config.ITEM_LOCATION_COUNTRY:
-                filters.append(f'itemLocationCountry:{Config.ITEM_LOCATION_COUNTRY}')
+            # Use ITEM_LOCATION_COUNTRY if set, otherwise fall back to LOCATED_IN
+            location_country = Config.ITEM_LOCATION_COUNTRY
+            if not location_country and Config.LOCATED_IN:
+                # Convert LOCATED_IN (e.g., "GB") to itemLocationCountry format
+                location_country = Config.LOCATED_IN.split(',')[0].strip()
+
+            if location_country:
+                filters.append(f'itemLocationCountry:{location_country}')
 
             if filters:
                 params['filter'] = ','.join(filters)
