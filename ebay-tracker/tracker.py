@@ -103,6 +103,10 @@ class EbayTracker:
                 conditions = '|'.join(Config.CONDITION_FILTER)
                 filters.append(f'conditions:{{{conditions}}}')
 
+            # Include both auctions and fixed price listings
+            # Without this filter, newlyListed sort tends to show only Buy It Now
+            filters.append('buyingOptions:{AUCTION|FIXED_PRICE}')
+
             # Add location filters
             # Use ITEM_LOCATION_COUNTRY if set, otherwise fall back to LOCATED_IN
             location_country = Config.ITEM_LOCATION_COUNTRY
