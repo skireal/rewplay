@@ -241,8 +241,18 @@ class EbayTracker:
                 if 'seller' in item_data:
                     item['seller'] = item_data['seller'].get('username', '')
 
-                # Listing date (not directly available, use current time)
-                item['listing_date'] = datetime.now().strftime('%Y-%m-%d %H:%M')
+                # Listing date (from itemCreationDate if available)
+                if 'itemCreationDate' in item_data:
+                    try:
+                        # Parse ISO format: 2024-11-08T12:30:00.000Z
+                        dt = datetime.fromisoformat(item_data['itemCreationDate'].replace('Z', '+00:00'))
+                        item['listing_date'] = dt.strftime('%Y-%m-%d %H:%M')
+                    except (ValueError, AttributeError):
+                        # Fallback to current time if parsing fails
+                        item['listing_date'] = datetime.now().strftime('%Y-%m-%d %H:%M')
+                else:
+                    # Fallback to current time if field not available
+                    item['listing_date'] = datetime.now().strftime('%Y-%m-%d %H:%M')
 
                 # Listing type (Browse API uses buyingOptions)
                 if 'buyingOptions' in item_data:
