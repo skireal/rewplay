@@ -147,7 +147,7 @@ class Notifier:
 
             # For auctions, show "Текущая ставка"
             if listing_type == 'Auction':
-                price_str += f"Текущая ставка: {item['price']} {item['currency']}"
+                price_str += f"Текущая ставка: <b>{item['price']} {item['currency']}</b>"
                 # Show bid count
                 if item.get('bid_count'):
                     price_str += f"\n📊 Ставок: {item['bid_count']}"
@@ -166,8 +166,8 @@ class Notifier:
                 except (ValueError, TypeError):
                     pass
 
-            # For Buy It Now, add RUB price divided by 2 (with shipping)
-            if listing_type == 'FixedPrice' and item.get('currency') == 'GBP':
+            # For GBP prices, add RUB conversion (both auctions and Buy It Now)
+            if item.get('currency') == 'GBP':
                 try:
                     gbp_price = float(item['price'])
                     total_gbp = gbp_price + shipping_cost
@@ -175,8 +175,17 @@ class Notifier:
                     if exchange_rate:
                         rub_price = total_gbp * exchange_rate
                         per_person = rub_price / 2
-                        shipping_note = " (с доставкой)" if shipping_cost > 0 else ""
-                        parts.append(f"💵 ≈ {per_person:,.0f} ₽ на человека{shipping_note}")
+
+                        if listing_type == 'FixedPrice':
+                            # Buy It Now - show "на человека"
+                            shipping_note = " (с доставкой)" if shipping_cost > 0 else ""
+                            parts.append(f"💵 ≈ {per_person:,.0f} ₽ на человека{shipping_note}")
+                        else:
+                            # Auction - show total price
+                            shipping_note = " (+ доставка)" if shipping_cost > 0 else ""
+                            parts.append(f"💵 ≈ {rub_price:,.0f} ₽{shipping_note}")
+
+
                         parts.append(f"📈 Курс: {exchange_rate:.1f} ₽/£")
                 except (ValueError, TypeError):
                     pass
