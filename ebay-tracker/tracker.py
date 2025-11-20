@@ -228,10 +228,19 @@ class EbayTracker:
                     'keyword': keyword
                 }
 
-                # Price
+                # Price (different fields for Buy It Now vs Auctions)
+                # Buy It Now uses 'price', Auctions use 'currentBidPrice' or 'startPrice'
                 if 'price' in item_data:
                     item['price'] = item_data['price'].get('value', '')
                     item['currency'] = item_data['price'].get('currency', '')
+                elif 'currentBidPrice' in item_data:
+                    # Auction with active bids
+                    item['price'] = item_data['currentBidPrice'].get('value', '')
+                    item['currency'] = item_data['currentBidPrice'].get('currency', '')
+                elif 'startPrice' in item_data:
+                    # Auction without bids (starting price)
+                    item['price'] = item_data['startPrice'].get('value', '')
+                    item['currency'] = item_data['startPrice'].get('currency', '')
 
                 # Image
                 if 'image' in item_data:
