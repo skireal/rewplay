@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "website",
+      "runtimeExecutable": "C:\\Users\\skire\\AppData\\Roaming\\nvm\\v20.11.0\\npm.cmd",
+      "runtimeArgs": ["run", "dev"],
+      "rootDir": "C:\\Users\\skire\\work\\rewplay\\website",
+      "port": 3000
+    }
+  ]
+}
