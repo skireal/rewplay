@@ -176,16 +176,9 @@ class Notifier:
                         rub_price = total_gbp * exchange_rate
                         per_person = rub_price / 2
 
-                        if listing_type == 'FixedPrice':
-                            # Buy It Now - show "на человека"
-                            shipping_note = " (с доставкой)" if shipping_cost > 0 else ""
-                            parts.append(f"💵 ≈ {per_person:,.0f} ₽ на человека{shipping_note}")
-                        else:
-                            # Auction - show total price
-                            shipping_note = " (+ доставка)" if shipping_cost > 0 else ""
-                            parts.append(f"💵 ≈ {rub_price:,.0f} ₽{shipping_note}")
-
-
+                        # Show "на человека" for both auctions and Buy It Now
+                        shipping_note = " (с доставкой)" if shipping_cost > 0 else ""
+                        parts.append(f"💵 ≈ {per_person:,.0f} ₽ на человека{shipping_note}")
                         parts.append(f"📈 Курс: {exchange_rate:.1f} ₽/£")
                 except (ValueError, TypeError):
                     pass
