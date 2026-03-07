@@ -133,7 +133,12 @@ export default function CatalogClient({ cassettes }: { cassettes: Cassette[] }) 
           {filtered.map((cassette) => (
             <Link href={`/catalog/${cassette.id}`} key={cassette.id}>
               <article className="cassette-card">
-                <div className="cassette-card__image" />
+                <div className={`cassette-card__image${cassette.cover_url ? ' cassette-card__image--photo' : ''}`}>
+                  {cassette.cover_url && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={cassette.cover_url} alt={`${cassette.artist} — ${cassette.album}`} />
+                  )}
+                </div>
                 <div className="cassette-card__content">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
                     <div className="cassette-card__artist">{cassette.artist}</div>

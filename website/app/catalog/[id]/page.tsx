@@ -39,7 +39,16 @@ export default async function CassettePage({ params }: { params: { id: string } 
           <div className="detail-grid">
             {/* Image */}
             <div>
-              <div className="detail-image" />
+              {cassette.cover_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={cassette.cover_url}
+                  alt={`${cassette.artist} — ${cassette.album}`}
+                  className="detail-image detail-image--photo"
+                />
+              ) : (
+                <div className="detail-image" />
+              )}
             </div>
 
             {/* Info */}

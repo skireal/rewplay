@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
 export default function AdminForm() {
@@ -10,11 +10,32 @@ export default function AdminForm() {
     ozonLink: '', wbLink: '', avitoLink: '',
   })
 
+  const [coverFile, setCoverFile] = useState<File | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null
+    setCoverFile(file)
+    if (file) {
+      const url = URL.createObjectURL(file)
+      setPreviewUrl(url)
+    } else {
+      setPreviewUrl(null)
+    }
+  }
+
+  const removeFile = () => {
+    setCoverFile(null)
+    setPreviewUrl(null)
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -23,7 +44,24 @@ export default function AdminForm() {
     setMessage(null)
 
     try {
-      const shopLinks: any = {}
+      // 1. Загружаем обложку, если выбрана
+      let cover_url: string | null = null
+      if (coverFile) {
+        const ext = coverFile.name.split('.').pop()
+        const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+
+        const { error: uploadError } = await supabase.storage
+          .from('covers')
+          .upload(fileName, coverFile, { cacheControl: '3600', upsert: false })
+
+        if (uploadError) throw uploadError
+
+        const { data: urlData } = supabase.storage.from('covers').getPublicUrl(fileName)
+        cover_url = urlData.publicUrl
+      }
+
+      // 2. Формируем данные
+      const shopLinks: Record<string, string> = {}
       if (formData.ozonLink) shopLinks.ozon = formData.ozonLink
       if (formData.wbLink) shopLinks.wildberries = formData.wbLink
       if (formData.avitoLink) shopLinks.avito = formData.avitoLink
@@ -32,6 +70,7 @@ export default function AdminForm() {
         ? formData.tags.split(',').map(t => t.trim()).filter(t => t)
         : null
 
+      // 3. Вставляем в БД
       const { error } = await supabase.from('cassettes').insert({
         artist: formData.artist,
         album: formData.album,
@@ -45,6 +84,7 @@ export default function AdminForm() {
         tags,
         shop_links: Object.keys(shopLinks).length > 0 ? shopLinks : null,
         in_stock: parseInt(formData.quantity) > 0,
+        cover_url,
       })
 
       if (error) throw error
@@ -55,6 +95,7 @@ export default function AdminForm() {
         genre: '', condition: 'Новая', description: '', tags: '',
         ozonLink: '', wbLink: '', avitoLink: '',
       })
+      removeFile()
 
       setTimeout(() => { window.location.href = '/catalog' }, 2000)
     } catch (error: any) {
@@ -73,6 +114,44 @@ export default function AdminForm() {
       )}
 
       <form onSubmit={handleSubmit}>
+
+        {/* Обложка */}
+        <div className="form-group" style={{ marginBottom: '32px' }}>
+          <label className="form-label">Обложка</label>
+          <div className="upload-area" onClick={() => fileInputRef.current?.click()}>
+            {previewUrl ? (
+              <div className="upload-preview">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={previewUrl} alt="Превью обложки" className="upload-preview__img" />
+                <button
+                  type="button"
+                  className="upload-preview__remove"
+                  onClick={(e) => { e.stopPropagation(); removeFile() }}
+                >
+                  ✕
+                </button>
+              </div>
+            ) : (
+              <div className="upload-placeholder">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                <span>Нажмите чтобы выбрать фото</span>
+                <span style={{ fontSize: '11px', color: 'var(--muted)' }}>JPG, PNG, WEBP до 5 МБ</span>
+              </div>
+            )}
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={handleFileChange}
+            style={{ display: 'none' }}
+          />
+        </div>
+
         <div className="form-grid-2">
           <div className="form-group">
             <label className="form-label">Исполнитель *</label>
@@ -176,7 +255,7 @@ export default function AdminForm() {
 
         <button type="submit" className="btn" disabled={loading}
           style={{ width: '100%', fontSize: '16px', padding: '16px', opacity: loading ? 0.7 : 1 }}>
-          {loading ? 'Добавление...' : 'Добавить кассету'}
+          {loading ? 'Сохранение...' : 'Добавить кассету'}
         </button>
       </form>
     </>
