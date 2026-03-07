@@ -1,8 +1,9 @@
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { Cassette } from '@/types/supabase'
+import Header from './components/Header'
 
-export const revalidate = 60 // Ревалидация каждые 60 секунд
+export const revalidate = 60
 
 async function getFeaturedCassettes() {
   const { data, error } = await supabase
@@ -25,74 +26,92 @@ export default async function HomePage() {
 
   return (
     <>
-      <header className="header">
-        <div className="container">
-          <div className="header__content">
-            <Link href="/" className="logo">
-              🎵 Rewplay
-            </Link>
-            <nav className="nav">
-              <Link href="/catalog">Каталог</Link>
-              <Link href="/admin">Админка</Link>
-            </nav>
-          </div>
-        </div>
-      </header>
+      <Header />
 
-      <main className="container">
-        <section style={{ textAlign: 'center', marginBottom: '60px' }}>
-          <h1 style={{ fontSize: '48px', marginBottom: '20px' }}>
-            Винтажные аудиокассеты
-          </h1>
-          <p style={{ fontSize: '20px', color: '#636e72', maxWidth: '600px', margin: '0 auto 30px' }}>
-            Уникальная коллекция раритетных и классических кассет русского рока и не только
-          </p>
-          <Link href="/catalog" className="btn">
-            Смотреть каталог
-          </Link>
+      <main>
+        {/* HERO */}
+        <section className="hero">
+          <div className="container">
+            <div className="hero__eyebrow">Vintage &amp; Rare</div>
+            <h1>
+              Аудио<br />
+              <em>Кассеты</em>
+            </h1>
+            <p className="hero__sub">
+              Коллекция раритетных кассет русского рока и мировой музыки — от 80-х до 2000-х
+            </p>
+            <Link href="/catalog" className="btn">
+              Смотреть каталог
+            </Link>
+          </div>
         </section>
 
-        <section>
-          <h2 style={{ fontSize: '32px', marginBottom: '30px' }}>
-            Новые поступления
-          </h2>
+        {/* NEW ARRIVALS */}
+        <section style={{ padding: '56px 0 0' }}>
+          <div className="container">
+            <h2 className="section-title">
+              <span className="section-title__dot" />
+              Новые поступления
+            </h2>
 
-          {cassettes.length === 0 ? (
-            <p className="loading">Кассеты не найдены. Добавьте их через админку или Supabase.</p>
-          ) : (
-            <div className="catalog-grid">
-              {cassettes.map((cassette) => (
-                <Link href={`/catalog/${cassette.id}`} key={cassette.id}>
-                  <article className="cassette-card">
-                    <div className="cassette-card__image" />
-                    <div className="cassette-card__content">
-                      <div className="cassette-card__artist">{cassette.artist}</div>
-                      <h3 className="cassette-card__album">{cassette.album}</h3>
-                      {cassette.year && (
-                        <span className="cassette-card__year">{cassette.year}</span>
-                      )}
-                      <div className="cassette-card__price">
-                        {cassette.price.toLocaleString('ru-RU')} ₽
-                      </div>
-                      {cassette.tags && cassette.tags.length > 0 && (
-                        <div className="tags">
-                          {cassette.tags.slice(0, 3).map((tag, i) => (
-                            <span key={i} className="tag">{tag}</span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </article>
+            {cassettes.length === 0 ? (
+              <div className="empty-state">
+                <p>Кассет пока нет. Добавьте их через админку.</p>
+                <Link href="/admin" className="btn btn--outline btn--sm">
+                  Добавить кассету
                 </Link>
-              ))}
-            </div>
-          )}
+              </div>
+            ) : (
+              <div className="catalog-grid">
+                {cassettes.map((cassette) => (
+                  <Link href={`/catalog/${cassette.id}`} key={cassette.id}>
+                    <article className="cassette-card">
+                      <div className="cassette-card__image" />
+                      <div className="cassette-card__content">
+                        <div className="cassette-card__artist">{cassette.artist}</div>
+                        <h3 className="cassette-card__album">{cassette.album}</h3>
+                        <div className="cassette-card__meta">
+                          {cassette.year && (
+                            <span className="badge badge--dark">{cassette.year}</span>
+                          )}
+                          {cassette.genre && (
+                            <span className="badge badge--outline">{cassette.genre}</span>
+                          )}
+                        </div>
+                        {cassette.tags && cassette.tags.length > 0 && (
+                          <div className="tags">
+                            {cassette.tags.slice(0, 3).map((tag, i) => (
+                              <span key={i} className="tag">{tag}</span>
+                            ))}
+                          </div>
+                        )}
+                        <div className="cassette-card__price">
+                          {cassette.price.toLocaleString('ru-RU')} ₽
+                        </div>
+                      </div>
+                    </article>
+                  </Link>
+                ))}
+              </div>
+            )}
+
+            {cassettes.length > 0 && (
+              <div style={{ textAlign: 'center', marginBottom: '64px' }}>
+                <Link href="/catalog" className="btn btn--outline">
+                  Весь каталог
+                </Link>
+              </div>
+            )}
+          </div>
         </section>
       </main>
 
       <footer className="footer">
         <div className="container">
-          <p>© 2024 Rewplay. Каталог винтажных аудиокассет</p>
+          <div className="footer__inner">
+            <p>© {new Date().getFullYear()} Rewplay</p>
+            <p>Каталог винтажных аудиокассет</p>
+          </div>
         </div>
       </footer>
     </>
