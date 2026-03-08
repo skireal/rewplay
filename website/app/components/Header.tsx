@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import fs from 'fs'
 import path from 'path'
+import { cookies } from 'next/headers'
 
 function LogoSvg() {
   const svgPath = path.join(process.cwd(), 'public', 'logo.svg')
@@ -29,6 +30,9 @@ function LogoSvg() {
 }
 
 export default function Header() {
+  const token = cookies().get('admin_token')?.value
+  const isAdmin = !!token && token === process.env.ADMIN_SECRET
+
   return (
     <header className="header">
       <div className="container">
@@ -38,6 +42,7 @@ export default function Header() {
           </Link>
           <nav className="nav">
             <Link href="/catalog">Каталог</Link>
+            {isAdmin && <Link href="/admin">Админка</Link>}
           </nav>
         </div>
       </div>
