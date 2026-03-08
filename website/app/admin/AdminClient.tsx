@@ -18,6 +18,11 @@ export default function AdminClient({ cassettes: initial }: { cassettes: Cassett
   const openEdit = (c: Cassette) => { setEditTarget(c); setView('edit') }
   const backToList = () => { setEditTarget(null); setView('list'); router.refresh() }
 
+  const handleLogout = async () => {
+    await fetch('/api/admin/auth', { method: 'DELETE' })
+    router.push('/admin/login')
+  }
+
   const handleDelete = async (c: Cassette) => {
     if (!confirm(`Удалить «${c.artist} — ${c.album}»?\nЭто действие нельзя отменить.`)) return
     setDeleting(c.id)
@@ -58,7 +63,10 @@ export default function AdminClient({ cassettes: initial }: { cassettes: Cassett
           <h1>Каталог</h1>
           <p>Управление кассетами · {initial.length} шт.</p>
         </div>
-        <button className="btn" onClick={openAdd}>+ Добавить</button>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <button className="btn" onClick={openAdd}>+ Добавить</button>
+          <button className="btn btn--outline" onClick={handleLogout}>Выйти</button>
+        </div>
       </div>
 
       {initial.length === 0 ? (
