@@ -38,7 +38,6 @@ export default function Header() {
           </Link>
           <nav className="nav">
             <Link href="/catalog">Каталог</Link>
-            <Link href="/admin">Админка</Link>
           </nav>
         </div>
       </div>
