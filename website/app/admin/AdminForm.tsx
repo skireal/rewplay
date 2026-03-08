@@ -2,16 +2,35 @@
 
 import { useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
+import { Cassette } from '@/types/supabase'
 
-export default function AdminForm() {
+interface Props {
+  cassette?: Cassette        // если передан — режим редактирования
+  onSuccess?: () => void     // колбэк после сохранения
+}
+
+export default function AdminForm({ cassette, onSuccess }: Props) {
+  const isEdit = !!cassette
+
   const [formData, setFormData] = useState({
-    artist: '', album: '', year: '', label: '', price: '', quantity: '1',
-    genre: '', condition: 'Новая', description: '', tags: '',
-    ozonLink: '', wbLink: '', avitoLink: '',
+    artist:      cassette?.artist      ?? '',
+    album:       cassette?.album       ?? '',
+    year:        cassette?.year?.toString() ?? '',
+    label:       cassette?.label       ?? '',
+    price:       cassette?.price?.toString() ?? '',
+    quantity:    cassette?.quantity?.toString() ?? '1',
+    genre:       cassette?.genre       ?? '',
+    condition:   cassette?.condition   ?? 'Новая',
+    description: cassette?.description ?? '',
+    tags:        cassette?.tags?.join(', ') ?? '',
+    ozonLink:    (cassette?.shop_links as any)?.ozon         ?? '',
+    wbLink:      (cassette?.shop_links as any)?.wildberries  ?? '',
+    avitoLink:   (cassette?.shop_links as any)?.avito        ?? '',
   })
 
   const [coverFile, setCoverFile] = useState<File | null>(null)
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(cassette?.cover_url ?? null)
+  const [existingCoverUrl, setExistingCoverUrl] = useState<string | null>(cassette?.cover_url ?? null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [loading, setLoading] = useState(false)
@@ -25,16 +44,14 @@ export default function AdminForm() {
     const file = e.target.files?.[0] ?? null
     setCoverFile(file)
     if (file) {
-      const url = URL.createObjectURL(file)
-      setPreviewUrl(url)
-    } else {
-      setPreviewUrl(null)
+      setPreviewUrl(URL.createObjectURL(file))
     }
   }
 
   const removeFile = () => {
     setCoverFile(null)
     setPreviewUrl(null)
+    setExistingCoverUrl(null)
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
@@ -44,19 +61,20 @@ export default function AdminForm() {
     setMessage(null)
 
     try {
-      // 1. Загружаем обложку, если выбрана
-      let cover_url: string | null = null
+      // 1. Загружаем новую обложку если выбрана
+      let cover_url: string | null = existingCoverUrl
+
       if (coverFile) {
         const ext = coverFile.name.split('.').pop()
         const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
 
         const { error: uploadError } = await supabase.storage
-          .from('covers')
+          .from('Covers')
           .upload(fileName, coverFile, { cacheControl: '3600', upsert: false })
 
         if (uploadError) throw uploadError
 
-        const { data: urlData } = supabase.storage.from('covers').getPublicUrl(fileName)
+        const { data: urlData } = supabase.storage.from('Covers').getPublicUrl(fileName)
         cover_url = urlData.publicUrl
       }
 
@@ -70,34 +88,35 @@ export default function AdminForm() {
         ? formData.tags.split(',').map(t => t.trim()).filter(t => t)
         : null
 
-      // 3. Вставляем в БД
-      const { error } = await supabase.from('cassettes').insert({
-        artist: formData.artist,
-        album: formData.album,
-        year: formData.year ? parseInt(formData.year) : null,
-        label: formData.label || null,
-        price: parseFloat(formData.price),
-        quantity: parseInt(formData.quantity),
-        genre: formData.genre || null,
-        condition: formData.condition,
+      const payload = {
+        artist:      formData.artist,
+        album:       formData.album,
+        year:        formData.year ? parseInt(formData.year) : null,
+        label:       formData.label || null,
+        price:       parseFloat(formData.price),
+        quantity:    parseInt(formData.quantity),
+        genre:       formData.genre || null,
+        condition:   formData.condition,
         description: formData.description || null,
         tags,
-        shop_links: Object.keys(shopLinks).length > 0 ? shopLinks : null,
-        in_stock: parseInt(formData.quantity) > 0,
+        shop_links:  Object.keys(shopLinks).length > 0 ? shopLinks : null,
+        in_stock:    parseInt(formData.quantity) > 0,
         cover_url,
-      })
+      }
 
-      if (error) throw error
+      // 3. Insert или Update
+      if (isEdit && cassette) {
+        const { error } = await supabase.from('cassettes').update(payload).eq('id', cassette.id)
+        if (error) throw error
+        setMessage({ type: 'success', text: 'Кассета обновлена' })
+      } else {
+        const { error } = await supabase.from('cassettes').insert(payload)
+        if (error) throw error
+        setMessage({ type: 'success', text: 'Кассета добавлена в каталог' })
+      }
 
-      setMessage({ type: 'success', text: 'Кассета успешно добавлена в каталог' })
-      setFormData({
-        artist: '', album: '', year: '', label: '', price: '', quantity: '1',
-        genre: '', condition: 'Новая', description: '', tags: '',
-        ozonLink: '', wbLink: '', avitoLink: '',
-      })
-      removeFile()
+      setTimeout(() => { onSuccess?.() }, 1200)
 
-      setTimeout(() => { window.location.href = '/catalog' }, 2000)
     } catch (error: any) {
       setMessage({ type: 'error', text: error.message })
     } finally {
@@ -255,7 +274,7 @@ export default function AdminForm() {
 
         <button type="submit" className="btn" disabled={loading}
           style={{ width: '100%', fontSize: '16px', padding: '16px', opacity: loading ? 0.7 : 1 }}>
-          {loading ? 'Сохранение...' : 'Добавить кассету'}
+          {loading ? 'Сохранение...' : isEdit ? 'Сохранить изменения' : 'Добавить кассету'}
         </button>
       </form>
     </>

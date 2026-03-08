@@ -1,23 +1,22 @@
 import Header from '../components/Header'
-import AdminForm from './AdminForm'
+import AdminClient from './AdminClient'
+import { supabase } from '@/lib/supabase'
 
-export default function AdminPage() {
+export const revalidate = 0
+
+export default async function AdminPage() {
+  const { data: cassettes } = await supabase
+    .from('cassettes')
+    .select('*')
+    .order('created_at', { ascending: false })
+
   return (
     <>
       <Header />
 
       <main style={{ padding: '48px 0 80px' }}>
         <div className="container">
-          <div style={{ maxWidth: '800px' }}>
-
-            <div className="admin-header">
-              <h1>Новая кассета</h1>
-              <p>Добавление в каталог</p>
-            </div>
-
-            <AdminForm />
-
-          </div>
+          <AdminClient cassettes={cassettes ?? []} />
         </div>
       </main>
 
