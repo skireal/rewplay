@@ -713,6 +713,13 @@ a {
   pointer-events: none;
 }
 
+.badge-new--lg {
+  top: 14px;
+  left: 14px;
+  font-size: 12px;
+  padding: 5px 12px;
+}
+
 /* ─── CATALOG STATS ─── */
 .catalog-stats {
   font-family: var(--font-mono);

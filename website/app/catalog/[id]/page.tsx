@@ -24,6 +24,7 @@ export default async function CassettePage({ params }: { params: { id: string } 
   if (!cassette) notFound()
 
   const shopLinks = cassette.shop_links as ShopLinks | null
+  const isNew = Date.now() - new Date(cassette.created_at).getTime() < 7 * 24 * 60 * 60 * 1000
 
   return (
     <>
@@ -38,7 +39,7 @@ export default async function CassettePage({ params }: { params: { id: string } 
 
           <div className="detail-grid">
             {/* Image */}
-            <div>
+            <div style={{ position: 'relative' }}>
               {cassette.cover_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -49,6 +50,7 @@ export default async function CassettePage({ params }: { params: { id: string } 
               ) : (
                 <div className="detail-image" />
               )}
+              {isNew && <span className="badge-new badge-new--lg">Новинка</span>}
             </div>
 
             {/* Info */}
