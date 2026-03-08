@@ -5,13 +5,20 @@ import Link from 'next/link'
 import { Cassette } from '@/types/supabase'
 
 type StockFilter = 'all' | 'in_stock'
+type SortBy = 'date_desc' | 'price_asc' | 'price_desc' | 'name_asc'
+
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
+
+function isNew(createdAt: string) {
+  return Date.now() - new Date(createdAt).getTime() < SEVEN_DAYS_MS
+}
 
 export default function CatalogClient({ cassettes }: { cassettes: Cassette[] }) {
   const [query, setQuery] = useState('')
   const [stockFilter, setStockFilter] = useState<StockFilter>('all')
   const [genreFilter, setGenreFilter] = useState<string>('all')
+  const [sortBy, setSortBy] = useState<SortBy>('date_desc')
 
-  // Уникальные жанры из данных
   const genres = useMemo(() => {
     const set = new Set<string>()
     cassettes.forEach(c => { if (c.genre) set.add(c.genre) })
@@ -20,20 +27,32 @@ export default function CatalogClient({ cassettes }: { cassettes: Cassette[] }) 
 
   const hasFilters = query || stockFilter !== 'all' || genreFilter !== 'all'
 
-  const filtered = useMemo(() => cassettes.filter((c) => {
-    if (stockFilter === 'in_stock' && !c.in_stock) return false
-    if (genreFilter !== 'all' && c.genre !== genreFilter) return false
-    if (query.trim()) {
-      const q = query.toLowerCase()
-      return (
-        c.artist.toLowerCase().includes(q) ||
-        c.album.toLowerCase().includes(q) ||
-        (c.genre?.toLowerCase().includes(q)) ||
-        (c.tags?.some(t => t.toLowerCase().includes(q)))
-      )
-    }
-    return true
-  }), [cassettes, query, stockFilter, genreFilter])
+  const filtered = useMemo(() => {
+    const result = cassettes.filter((c) => {
+      if (stockFilter === 'in_stock' && !c.in_stock) return false
+      if (genreFilter !== 'all' && c.genre !== genreFilter) return false
+      if (query.trim()) {
+        const q = query.toLowerCase()
+        return (
+          c.artist.toLowerCase().includes(q) ||
+          c.album.toLowerCase().includes(q) ||
+          (c.genre?.toLowerCase().includes(q)) ||
+          (c.tags?.some(t => t.toLowerCase().includes(q)))
+        )
+      }
+      return true
+    })
+
+    return result.sort((a, b) => {
+      switch (sortBy) {
+        case 'price_asc':  return a.price - b.price
+        case 'price_desc': return b.price - a.price
+        case 'name_asc':   return a.artist.localeCompare(b.artist, 'ru')
+        case 'date_desc':
+        default:           return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      }
+    })
+  }, [cassettes, query, stockFilter, genreFilter, sortBy])
 
   const resetAll = () => {
     setQuery('')
@@ -65,7 +84,7 @@ export default function CatalogClient({ cassettes }: { cassettes: Cassette[] }) 
         </div>
       </div>
 
-      {/* Фильтры */}
+      {/* Фильтры + Сортировка */}
       <div className="filters">
         {/* Наличие */}
         <div className="filter-group">
@@ -104,12 +123,26 @@ export default function CatalogClient({ cassettes }: { cassettes: Cassette[] }) 
           </div>
         )}
 
-        {/* Сброс всех фильтров */}
+        {/* Сброс */}
         {hasFilters && (
           <button className="filter-reset" onClick={resetAll}>
             Сбросить всё
           </button>
         )}
+
+        {/* Сортировка */}
+        <div className="sort-select-wrap">
+          <select
+            className="sort-select"
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as SortBy)}
+          >
+            <option value="date_desc">Сначала новые</option>
+            <option value="price_asc">Цена: дешевле</option>
+            <option value="price_desc">Цена: дороже</option>
+            <option value="name_asc">По названию А–Я</option>
+          </select>
+        </div>
       </div>
 
       {/* Статистика — только при активных фильтрах */}
@@ -137,6 +170,9 @@ export default function CatalogClient({ cassettes }: { cassettes: Cassette[] }) 
                   {cassette.cover_url && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={cassette.cover_url} alt={`${cassette.artist} — ${cassette.album}`} />
+                  )}
+                  {isNew(cassette.created_at) && (
+                    <span className="badge-new">Новинка</span>
                   )}
                 </div>
                 <div className="cassette-card__content">
