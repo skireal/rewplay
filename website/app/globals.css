@@ -97,6 +97,7 @@ a {
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.12em;
+  white-space: nowrap;
   text-transform: uppercase;
   color: var(--black);
   transition: color 0.15s;
@@ -258,6 +259,9 @@ a {
   text-transform: uppercase;
   color: var(--muted);
   margin-bottom: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .cassette-card__album {
@@ -267,6 +271,11 @@ a {
   line-height: 1.15;
   color: var(--black);
   margin-bottom: 12px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: break-word;
 }
 
 .cassette-card__meta {
@@ -364,6 +373,10 @@ a {
   color: var(--muted);
   letter-spacing: 0.04em;
   text-transform: lowercase;
+  white-space: nowrap;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ─── BUTTONS ─── */
@@ -495,6 +508,8 @@ a {
   margin-bottom: 20px;
   text-transform: uppercase;
   letter-spacing: -0.01em;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .detail-price {
@@ -528,6 +543,8 @@ a {
   font-size: 15px;
   line-height: 1.7;
   color: var(--black);
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .detail-meta-row {
@@ -639,6 +656,7 @@ a {
   color: var(--black);
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
 }
 
 .filter-chip:hover {
@@ -673,6 +691,7 @@ a {
 /* ─── SORT SELECT ─── */
 .sort-select-wrap {
   margin-left: auto;
+  flex-shrink: 0;
 }
 
 .sort-select {
@@ -1101,5 +1120,39 @@ a {
   .footer__inner {
     justify-content: center;
     text-align: center;
+  }
+
+  /* Сортировка переезжает на новую строку на мобиле */
+  .sort-select-wrap {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .sort-select {
+    width: 100%;
+  }
+
+  /* Шапка не переполняется на узких экранах */
+  .header__content {
+    gap: 12px;
+  }
+
+  .nav {
+    gap: 20px;
+  }
+
+  /* Список в каталоге — одна колонка */
+  .catalog-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  }
+
+  /* Строки в admin-list складываются на мобиле */
+  .admin-list__row {
+    grid-template-columns: 48px 1fr auto;
+    grid-template-rows: auto auto;
+  }
+
+  .admin-list__actions {
+    grid-column: 2 / -1;
   }
 }
