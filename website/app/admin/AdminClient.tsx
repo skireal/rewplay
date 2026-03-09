@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Cassette } from '@/types/supabase'
+import { COVERS_BUCKET } from '@/lib/constants'
+import { formatPrice } from '@/lib/utils'
 import AdminForm from './AdminForm'
 
 type View = 'list' | 'add' | 'edit'
@@ -27,13 +29,15 @@ export default function AdminClient({ cassettes: initial }: { cassettes: Cassett
     if (!confirm(`Удалить «${c.artist} — ${c.album}»?\nЭто действие нельзя отменить.`)) return
     setDeleting(c.id)
     try {
-      // Удаляем обложку из Storage если есть
       if (c.cover_url) {
         const fileName = c.cover_url.split('/').pop()
-        if (fileName) await supabase.storage.from('Covers').remove([fileName])
+        if (fileName) await supabase.storage.from(COVERS_BUCKET).remove([fileName])
       }
-      await supabase.from('cassettes').delete().eq('id', c.id)
+      const { error } = await supabase.from('cassettes').delete().eq('id', c.id)
+      if (error) throw error
       router.refresh()
+    } catch (err: any) {
+      alert(`Ошибка при удалении: ${err.message}`)
     } finally {
       setDeleting(null)
     }
@@ -95,7 +99,7 @@ export default function AdminClient({ cassettes: initial }: { cassettes: Cassett
 
               {/* Цена + наличие */}
               <div className="admin-list__meta">
-                <span className="admin-list__price">{c.price.toLocaleString('ru-RU')} ₽</span>
+                <span className="admin-list__price">{formatPrice(c.price)}</span>
                 <span className={`stock-badge ${c.in_stock ? 'stock-badge--in' : 'stock-badge--out'}`}>
                   {c.in_stock ? `×${c.quantity}` : 'нет'}
                 </span>

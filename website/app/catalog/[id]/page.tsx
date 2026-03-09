@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Cassette, ShopLinks } from '@/types/supabase'
 import Header from '../../components/Header'
+import { isNew, formatPrice } from '@/lib/utils'
 
 export const revalidate = 30
 
@@ -24,7 +25,7 @@ export default async function CassettePage({ params }: { params: { id: string } 
   if (!cassette) notFound()
 
   const shopLinks = cassette.shop_links as ShopLinks | null
-  const isNew = Date.now() - new Date(cassette.created_at).getTime() < 7 * 24 * 60 * 60 * 1000
+  const cassetteIsNew = isNew(cassette.created_at)
 
   return (
     <>
@@ -50,7 +51,7 @@ export default async function CassettePage({ params }: { params: { id: string } 
               ) : (
                 <div className="detail-image" />
               )}
-              {isNew && <span className="badge-new badge-new--lg">Новинка</span>}
+              {cassetteIsNew && <span className="badge-new badge-new--lg">Новинка</span>}
             </div>
 
             {/* Info */}
@@ -71,7 +72,7 @@ export default async function CassettePage({ params }: { params: { id: string } 
               </div>
 
               <div className="detail-price">
-                {cassette.price.toLocaleString('ru-RU')} ₽
+                {formatPrice(cassette.price)}
               </div>
 
               {/* Details */}

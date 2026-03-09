@@ -1,16 +1,18 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Cassette } from '@/types/supabase'
+import { Cassette, ShopLinks } from '@/types/supabase'
+import { COVERS_BUCKET } from '@/lib/constants'
 
 interface Props {
-  cassette?: Cassette        // если передан — режим редактирования
-  onSuccess?: () => void     // колбэк после сохранения
+  cassette?: Cassette
+  onSuccess?: () => void
 }
 
 export default function AdminForm({ cassette, onSuccess }: Props) {
   const isEdit = !!cassette
+  const shopLinks = cassette?.shop_links as ShopLinks | null
 
   const [formData, setFormData] = useState({
     artist:      cassette?.artist      ?? '',
@@ -23,18 +25,27 @@ export default function AdminForm({ cassette, onSuccess }: Props) {
     condition:   cassette?.condition   ?? 'Новая',
     description: cassette?.description ?? '',
     tags:        cassette?.tags?.join(', ') ?? '',
-    ozonLink:    (cassette?.shop_links as any)?.ozon         ?? '',
-    wbLink:      (cassette?.shop_links as any)?.wildberries  ?? '',
-    avitoLink:   (cassette?.shop_links as any)?.avito        ?? '',
+    ozonLink:    shopLinks?.ozon         ?? '',
+    wbLink:      shopLinks?.wildberries  ?? '',
+    avitoLink:   shopLinks?.avito        ?? '',
   })
 
   const [coverFile, setCoverFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(cassette?.cover_url ?? null)
   const [existingCoverUrl, setExistingCoverUrl] = useState<string | null>(cassette?.cover_url ?? null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  // Храним blob URL чтобы освободить память при смене файла или анмаунте
+  const blobUrlRef = useRef<string | null>(null)
 
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+
+  // Освобождаем blob URL при анмаунте компонента
+  useEffect(() => {
+    return () => {
+      if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current)
+    }
+  }, [])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
@@ -44,11 +55,19 @@ export default function AdminForm({ cassette, onSuccess }: Props) {
     const file = e.target.files?.[0] ?? null
     setCoverFile(file)
     if (file) {
-      setPreviewUrl(URL.createObjectURL(file))
+      // Освобождаем предыдущий blob URL перед созданием нового
+      if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current)
+      const url = URL.createObjectURL(file)
+      blobUrlRef.current = url
+      setPreviewUrl(url)
     }
   }
 
   const removeFile = () => {
+    if (blobUrlRef.current) {
+      URL.revokeObjectURL(blobUrlRef.current)
+      blobUrlRef.current = null
+    }
     setCoverFile(null)
     setPreviewUrl(null)
     setExistingCoverUrl(null)
@@ -69,20 +88,20 @@ export default function AdminForm({ cassette, onSuccess }: Props) {
         const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
 
         const { error: uploadError } = await supabase.storage
-          .from('Covers')
+          .from(COVERS_BUCKET)
           .upload(fileName, coverFile, { cacheControl: '3600', upsert: false })
 
         if (uploadError) throw uploadError
 
-        const { data: urlData } = supabase.storage.from('Covers').getPublicUrl(fileName)
+        const { data: urlData } = supabase.storage.from(COVERS_BUCKET).getPublicUrl(fileName)
         cover_url = urlData.publicUrl
       }
 
       // 2. Формируем данные
-      const shopLinks: Record<string, string> = {}
-      if (formData.ozonLink) shopLinks.ozon = formData.ozonLink
-      if (formData.wbLink) shopLinks.wildberries = formData.wbLink
-      if (formData.avitoLink) shopLinks.avito = formData.avitoLink
+      const links: Record<string, string> = {}
+      if (formData.ozonLink) links.ozon = formData.ozonLink
+      if (formData.wbLink) links.wildberries = formData.wbLink
+      if (formData.avitoLink) links.avito = formData.avitoLink
 
       const tags = formData.tags
         ? formData.tags.split(',').map(t => t.trim()).filter(t => t)
@@ -99,7 +118,7 @@ export default function AdminForm({ cassette, onSuccess }: Props) {
         condition:   formData.condition,
         description: formData.description || null,
         tags,
-        shop_links:  Object.keys(shopLinks).length > 0 ? shopLinks : null,
+        shop_links:  Object.keys(links).length > 0 ? links : null,
         in_stock:    parseInt(formData.quantity) > 0,
         cover_url,
       }

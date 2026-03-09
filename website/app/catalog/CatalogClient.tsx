@@ -3,15 +3,10 @@
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { Cassette } from '@/types/supabase'
+import { isNew, formatPrice } from '@/lib/utils'
 
 type StockFilter = 'all' | 'in_stock'
 type SortBy = 'date_desc' | 'price_asc' | 'price_desc' | 'name_asc'
-
-const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
-
-function isNew(createdAt: string) {
-  return Date.now() - new Date(createdAt).getTime() < SEVEN_DAYS_MS
-}
 
 export default function CatalogClient({ cassettes }: { cassettes: Cassette[] }) {
   const [query, setQuery] = useState('')
@@ -43,13 +38,18 @@ export default function CatalogClient({ cassettes }: { cassettes: Cassette[] }) 
       return true
     })
 
+    // Пре-вычисляем timestamps один раз вместо O(N log N) парсинга дат в компараторе
+    if (sortBy === 'date_desc') {
+      const ts = new Map(result.map(c => [c.id, new Date(c.created_at).getTime()]))
+      return result.sort((a, b) => ts.get(b.id)! - ts.get(a.id)!)
+    }
+
     return result.sort((a, b) => {
       switch (sortBy) {
         case 'price_asc':  return a.price - b.price
         case 'price_desc': return b.price - a.price
         case 'name_asc':   return a.artist.localeCompare(b.artist, 'ru')
-        case 'date_desc':
-        default:           return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        default:           return 0
       }
     })
   }, [cassettes, query, stockFilter, genreFilter, sortBy])
@@ -195,7 +195,7 @@ export default function CatalogClient({ cassettes }: { cassettes: Cassette[] }) 
                     </div>
                   )}
                   <div className="cassette-card__price">
-                    {cassette.price.toLocaleString('ru-RU')} ₽
+                    {formatPrice(cassette.price)}
                   </div>
                 </div>
               </article>

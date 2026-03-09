@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { Cassette } from '@/types/supabase'
 import Header from './components/Header'
+import { formatPrice } from '@/lib/utils'
 
 export const revalidate = 60
 
@@ -91,7 +92,7 @@ export default async function HomePage() {
                           </div>
                         )}
                         <div className="cassette-card__price">
-                          {cassette.price.toLocaleString('ru-RU')} ₽
+                          {formatPrice(cassette.price)}
                         </div>
                       </div>
                     </article>
