@@ -10,7 +10,7 @@ async function getFeaturedCassettes() {
   const { data, error } = await supabase
     .from('cassettes')
     .select('*')
-    .eq('in_stock', true)
+    .eq('status', 'available')
     .order('created_at', { ascending: false })
     .limit(6)
 

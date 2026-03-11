@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "import:avito": "node scripts/import-avito.mjs",
+    "import:avito:dry": "node scripts/import-avito.mjs --dry-run",
+    "images:gen": "node scripts/gen-image-script.mjs",
+    "images:update": "node scripts/update-images.mjs"
   },
   "dependencies": {
     "next": "^14.0.0",

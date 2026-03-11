@@ -20,7 +20,7 @@ export default function AdminForm({ cassette, onSuccess }: Props) {
     year:        cassette?.year?.toString() ?? '',
     label:       cassette?.label       ?? '',
     price:       cassette?.price?.toString() ?? '',
-    quantity:    cassette?.quantity?.toString() ?? '1',
+    status:      cassette?.status      ?? 'available',
     genre:       cassette?.genre       ?? '',
     condition:   cassette?.condition   ?? 'Новая',
     description: cassette?.description ?? '',
@@ -113,13 +113,12 @@ export default function AdminForm({ cassette, onSuccess }: Props) {
         year:        formData.year ? parseInt(formData.year) : null,
         label:       formData.label || null,
         price:       parseFloat(formData.price),
-        quantity:    parseInt(formData.quantity),
+        status:      formData.status as 'available' | 'waiting',
         genre:       formData.genre || null,
         condition:   formData.condition,
         description: formData.description || null,
         tags,
         shop_links:  Object.keys(links).length > 0 ? links : null,
-        in_stock:    parseInt(formData.quantity) > 0,
         cover_url,
       }
 
@@ -227,10 +226,12 @@ export default function AdminForm({ cassette, onSuccess }: Props) {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Количество *</label>
-            <input type="number" name="quantity" className="form-input"
-              value={formData.quantity} onChange={handleChange}
-              required min="0" placeholder="1" />
+            <label className="form-label">Статус</label>
+            <select name="status" className="form-select"
+              value={formData.status} onChange={handleChange}>
+              <option value="available">В наличии</option>
+              <option value="waiting">В ожидании</option>
+            </select>
           </div>
 
           <div className="form-group">

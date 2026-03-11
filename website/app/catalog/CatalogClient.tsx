@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { Cassette } from '@/types/supabase'
 import { isNew, formatPrice } from '@/lib/utils'
 
-type StockFilter = 'all' | 'in_stock'
+type StockFilter = 'all' | 'available'
 type SortBy = 'date_desc' | 'price_asc' | 'price_desc' | 'name_asc'
 
 export default function CatalogClient({ cassettes }: { cassettes: Cassette[] }) {
@@ -24,7 +24,7 @@ export default function CatalogClient({ cassettes }: { cassettes: Cassette[] }) 
 
   const filtered = useMemo(() => {
     const result = cassettes.filter((c) => {
-      if (stockFilter === 'in_stock' && !c.in_stock) return false
+      if (stockFilter === 'available' && c.status !== 'available') return false
       if (genreFilter !== 'all' && c.genre !== genreFilter) return false
       if (query.trim()) {
         const q = query.toLowerCase()
@@ -95,8 +95,8 @@ export default function CatalogClient({ cassettes }: { cassettes: Cassette[] }) 
             Все
           </button>
           <button
-            className={`filter-chip ${stockFilter === 'in_stock' ? 'filter-chip--active' : ''}`}
-            onClick={() => setStockFilter('in_stock')}
+            className={`filter-chip ${stockFilter === 'available' ? 'filter-chip--active' : ''}`}
+            onClick={() => setStockFilter('available')}
           >
             В наличии
           </button>
@@ -178,8 +178,8 @@ export default function CatalogClient({ cassettes }: { cassettes: Cassette[] }) 
                 <div className="cassette-card__content">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
                     <div className="cassette-card__artist">{cassette.artist}</div>
-                    <span className={`stock-badge ${cassette.in_stock ? 'stock-badge--in' : 'stock-badge--out'}`}>
-                      {cassette.in_stock ? `×${cassette.quantity}` : 'нет'}
+                    <span className={`stock-badge ${cassette.status === 'available' ? 'stock-badge--in' : 'stock-badge--wait'}`}>
+                      {cassette.status === 'available' ? 'в наличии' : 'в ожидании'}
                     </span>
                   </div>
                   <h3 className="cassette-card__album">{cassette.album}</h3>

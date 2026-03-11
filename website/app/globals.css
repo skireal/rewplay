@@ -353,6 +353,12 @@ a {
   border-color: var(--muted);
 }
 
+.stock-badge--wait {
+  background: transparent;
+  color: #C08000;
+  border-color: #C08000;
+}
+
 /* ─── TAGS ─── */
 .tags {
   display: flex;

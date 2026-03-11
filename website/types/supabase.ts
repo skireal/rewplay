@@ -18,8 +18,7 @@ export interface Database {
           label: string | null
           catalog_number: string | null
           price: number
-          in_stock: boolean
-          quantity: number
+          status: 'available' | 'waiting'
           cover_url: string | null
           images: Json | null
           description: string | null
@@ -39,8 +38,7 @@ export interface Database {
           label?: string | null
           catalog_number?: string | null
           price: number
-          in_stock?: boolean
-          quantity?: number
+          status?: 'available' | 'waiting'
           cover_url?: string | null
           images?: Json | null
           description?: string | null
@@ -60,8 +58,7 @@ export interface Database {
           label?: string | null
           catalog_number?: string | null
           price?: number
-          in_stock?: boolean
-          quantity?: number
+          status?: 'available' | 'waiting'
           cover_url?: string | null
           images?: Json | null
           description?: string | null
@@ -73,6 +70,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
     }
     Views: {
@@ -83,27 +81,30 @@ export interface Database {
           album: string
           year: number | null
           price: number
-          quantity: number
           genre: string | null
           tags: string[] | null
           condition: string | null
           cover_url: string | null
           shop_links: Json | null
         }
+        Relationships: []
       }
       catalog_stats: {
         Row: {
           total_cassettes: number
           in_stock_count: number
-          total_quantity: number
           average_price: number
           min_price: number
           max_price: number
           unique_artists: number
           unique_genres: number
         }
+        Relationships: []
       }
     }
+    Functions: {}
+    Enums: {}
+    CompositeTypes: {}
   }
 }
 

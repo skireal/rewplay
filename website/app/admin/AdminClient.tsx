@@ -100,8 +100,8 @@ export default function AdminClient({ cassettes: initial }: { cassettes: Cassett
               {/* Цена + наличие */}
               <div className="admin-list__meta">
                 <span className="admin-list__price">{formatPrice(c.price)}</span>
-                <span className={`stock-badge ${c.in_stock ? 'stock-badge--in' : 'stock-badge--out'}`}>
-                  {c.in_stock ? `×${c.quantity}` : 'нет'}
+                <span className={`stock-badge ${c.status === 'available' ? 'stock-badge--in' : 'stock-badge--wait'}`}>
+                  {c.status === 'available' ? 'в наличии' : 'в ожидании'}
                 </span>
               </div>
 

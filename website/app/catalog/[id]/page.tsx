@@ -66,8 +66,8 @@ export default async function CassettePage({ params }: { params: { id: string } 
                 {cassette.genre && (
                   <span className="badge badge--outline">{cassette.genre}</span>
                 )}
-                <span className={`stock-badge ${cassette.in_stock ? 'stock-badge--in' : 'stock-badge--out'}`}>
-                  {cassette.in_stock ? `В наличии: ${cassette.quantity} шт` : 'Нет в наличии'}
+                <span className={`stock-badge ${cassette.status === 'available' ? 'stock-badge--in' : 'stock-badge--wait'}`}>
+                  {cassette.status === 'available' ? 'В наличии' : 'В ожидании'}
                 </span>
               </div>
 
