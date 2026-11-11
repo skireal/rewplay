@@ -5,8 +5,8 @@ import { supabase } from '@/lib/supabase'
 export const revalidate = 0
 
 export default async function AdminPage() {
-  const { data: cassettes } = await supabase
-    .from('cassettes')
+  const { data: products } = await supabase
+    .from('products')
     .select('*')
     .order('created_at', { ascending: false })
 
@@ -16,7 +16,7 @@ export default async function AdminPage() {
 
       <main style={{ padding: '48px 0 80px' }}>
         <div className="container">
-          <AdminClient cassettes={cassettes ?? []} />
+          <AdminClient products={products ?? []} />
         </div>
       </main>
 

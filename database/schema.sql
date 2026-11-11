@@ -1,186 +1,194 @@
 -- Rewplay Database Schema
--- Схема базы данных для каталога аудиокассет
+-- Универсальная схема для кассет, CD и мерча
 
--- Включаем расширение для UUID
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- Таблица кассет
-CREATE TABLE cassettes (
+-- ============================================================
+-- ОСНОВНАЯ ТАБЛИЦА ТОВАРОВ
+-- ============================================================
+
+CREATE TABLE products (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
 
-  -- Основная информация
-  artist VARCHAR(255) NOT NULL,
-  album VARCHAR(255) NOT NULL,
-  year INTEGER CHECK (year >= 1960 AND year <= 2030),
-  label VARCHAR(255), -- Лейбл
-  catalog_number VARCHAR(100), -- Каталожный номер
+  -- Тип товара
+  type VARCHAR(20) NOT NULL CHECK (type IN ('cassette', 'cd', 'merch')),
 
-  -- Цена и наличие
-  price DECIMAL(10, 2) NOT NULL CHECK (price >= 0),
-  in_stock BOOLEAN DEFAULT true,
+  -- Статус
+  -- available  = в наличии (выставлен на продажу)
+  -- reserved   = забронирован покупателем
+  -- in_transit = едет к нам (ещё не у нас)
+  -- sold       = продан
+  status VARCHAR(20) NOT NULL DEFAULT 'available'
+    CHECK (status IN ('available', 'reserved', 'in_transit', 'sold')),
+
+  -- Основная информация
+  title TEXT NOT NULL,              -- полный заголовок лота
+  artist VARCHAR(255),              -- исполнитель / группа
+  album VARCHAR(255),               -- название альбома (для кассет и CD)
+  year INTEGER CHECK (year >= 1950 AND year <= 2030),
+  label VARCHAR(255),               -- лейбл
+  catalog_number VARCHAR(100),      -- каталожный номер
+
+  -- Цена
+  price DECIMAL(10, 2) CHECK (price >= 0),
+
+  -- Количество (обычно 1, но для мерча может быть больше)
   quantity INTEGER DEFAULT 1 CHECK (quantity >= 0),
 
-  -- Медиа
-  cover_url TEXT, -- URL обложки альбома
-  images JSONB, -- Дополнительные изображения
+  -- Состояние
+  condition VARCHAR(50),            -- Новая, Б/У Отличное, Б/У Хорошее, Коллекционная
+
+  -- Жанр и теги
+  genre VARCHAR(100),
+  tags TEXT[],
 
   -- Описание
   description TEXT,
-  condition VARCHAR(50), -- Состояние: новая, б/у отличное, б/у хорошее и т.д.
-  notes TEXT, -- Дополнительные заметки
+  notes TEXT,                       -- внутренние заметки (не показываем публично)
 
-  -- Ссылки на магазины
-  shop_links JSONB, -- {"ozon": "url", "wildberries": "url", "avito": "url"}
+  -- Медиа (URL из Supabase Storage — постоянные)
+  cover_url TEXT,                   -- главное фото
+  images JSONB,                     -- массив URL доп. фото: ["url1", "url2", ...]
 
-  -- Теги и категории
-  tags TEXT[], -- Массив тегов: жанры, особенности и т.д.
-  genre VARCHAR(100),
+  -- Ссылки на площадки
+  shop_links JSONB,                 -- {"meshok": "url", "avito": "url", "ebay": "url"}
 
-  -- Метаданные
-  created_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP DEFAULT NOW(),
+  -- Мешок
+  meshok_id BIGINT UNIQUE,          -- ID лота на meshok.net (для дедупликации)
+  meshok_end_date TIMESTAMPTZ,      -- дата окончания лота на мешке
+
+  -- Специфичные поля по типу товара (JSONB)
+  -- Для мерча:    {"item_type": "t-shirt", "size": "L", "color": "black"}
+  -- Для кассет:   {} или дополнительные поля если нужны
+  metadata JSONB DEFAULT '{}',
+
+  -- Временные метки
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
 
   -- Полнотекстовый поиск
-  search_vector tsvector
+  search_vector TSVECTOR
 );
 
--- Индексы для быстрого поиска
-CREATE INDEX idx_cassettes_artist ON cassettes(artist);
-CREATE INDEX idx_cassettes_album ON cassettes(album);
-CREATE INDEX idx_cassettes_in_stock ON cassettes(in_stock);
-CREATE INDEX idx_cassettes_price ON cassettes(price);
-CREATE INDEX idx_cassettes_year ON cassettes(year);
-CREATE INDEX idx_cassettes_genre ON cassettes(genre);
-CREATE INDEX idx_cassettes_tags ON cassettes USING GIN(tags);
-CREATE INDEX idx_cassettes_search ON cassettes USING GIN(search_vector);
+-- ============================================================
+-- ИНДЕКСЫ
+-- ============================================================
 
--- Триггер для автоматического обновления updated_at
+CREATE INDEX idx_products_type      ON products(type);
+CREATE INDEX idx_products_status    ON products(status);
+CREATE INDEX idx_products_artist    ON products(artist);
+CREATE INDEX idx_products_genre     ON products(genre);
+CREATE INDEX idx_products_price     ON products(price);
+CREATE INDEX idx_products_meshok_id ON products(meshok_id);
+CREATE INDEX idx_products_tags      ON products USING GIN(tags);
+CREATE INDEX idx_products_search    ON products USING GIN(search_vector);
+CREATE INDEX idx_products_metadata  ON products USING GIN(metadata);
+
+-- ============================================================
+-- ТРИГГЕРЫ
+-- ============================================================
+
+-- Автообновление updated_at
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
-   NEW.updated_at = NOW();
-   RETURN NEW;
+  NEW.updated_at = NOW();
+  RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER update_cassettes_updated_at
-  BEFORE UPDATE ON cassettes
+CREATE TRIGGER update_products_updated_at
+  BEFORE UPDATE ON products
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
--- Триггер для обновления search_vector (полнотекстовый поиск)
-CREATE OR REPLACE FUNCTION update_search_vector()
+-- Обновление search_vector при insert/update
+CREATE OR REPLACE FUNCTION update_products_search_vector()
 RETURNS TRIGGER AS $$
 BEGIN
   NEW.search_vector :=
     setweight(to_tsvector('russian', COALESCE(NEW.artist, '')), 'A') ||
-    setweight(to_tsvector('russian', COALESCE(NEW.album, '')), 'B') ||
+    setweight(to_tsvector('russian', COALESCE(NEW.album, '')),  'A') ||
+    setweight(to_tsvector('russian', COALESCE(NEW.title, '')),  'B') ||
     setweight(to_tsvector('russian', COALESCE(NEW.description, '')), 'C');
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER update_cassettes_search_vector
-  BEFORE INSERT OR UPDATE ON cassettes
+CREATE TRIGGER update_products_search_vector
+  BEFORE INSERT OR UPDATE ON products
   FOR EACH ROW
-  EXECUTE FUNCTION update_search_vector();
+  EXECUTE FUNCTION update_products_search_vector();
 
--- Таблица для отслеживания истории изменений цен (опционально)
+-- ============================================================
+-- ИСТОРИЯ ЦЕН
+-- ============================================================
+
 CREATE TABLE price_history (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  cassette_id UUID REFERENCES cassettes(id) ON DELETE CASCADE,
-  old_price DECIMAL(10, 2),
-  new_price DECIMAL(10, 2),
-  changed_at TIMESTAMP DEFAULT NOW()
+  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  product_id  UUID REFERENCES products(id) ON DELETE CASCADE,
+  old_price   DECIMAL(10, 2),
+  new_price   DECIMAL(10, 2),
+  changed_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Функция для логирования изменений цены
+CREATE INDEX idx_price_history_product ON price_history(product_id);
+
 CREATE OR REPLACE FUNCTION log_price_change()
 RETURNS TRIGGER AS $$
 BEGIN
   IF OLD.price IS DISTINCT FROM NEW.price THEN
-    INSERT INTO price_history (cassette_id, old_price, new_price)
+    INSERT INTO price_history (product_id, old_price, new_price)
     VALUES (NEW.id, OLD.price, NEW.price);
   END IF;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER cassettes_price_change
-  AFTER UPDATE ON cassettes
+CREATE TRIGGER products_price_change
+  AFTER UPDATE ON products
   FOR EACH ROW
   EXECUTE FUNCTION log_price_change();
 
--- Примеры данных для тестирования
-INSERT INTO cassettes (artist, album, year, price, in_stock, quantity, genre, tags, condition, description, shop_links)
-VALUES
-  (
-    'Кино',
-    'Группа крови',
-    1988,
-    1500.00,
-    true,
-    3,
-    'Рок',
-    ARRAY['русский рок', 'классика', '80-е'],
-    'Новая',
-    'Культовый альбом группы Кино. Запечатанная кассета, оригинальное издание.',
-    '{"ozon": "https://ozon.ru/example", "wildberries": "https://wb.ru/example"}'::jsonb
-  ),
-  (
-    'ДДТ',
-    'Актриса Весна',
-    1992,
-    1200.00,
-    true,
-    2,
-    'Рок',
-    ARRAY['русский рок', '90-е'],
-    'Б/У Отличное',
-    'Альбом ДДТ в отличном состоянии. Кассета проверена, звук чистый.',
-    '{"avito": "https://avito.ru/example"}'::jsonb
-  ),
-  (
-    'Аквариум',
-    'Радио Африка',
-    1983,
-    2000.00,
-    false,
-    0,
-    'Рок',
-    ARRAY['русский рок', 'классика', '80-е', 'раритет'],
-    'Б/У Хорошее',
-    'Раритетная кассета. Продана, но можем найти аналог.',
-    NULL
-  );
+-- ============================================================
+-- ПРЕДСТАВЛЕНИЯ (VIEWS)
+-- ============================================================
 
--- Представление для удобного отображения товаров в наличии
-CREATE VIEW available_cassettes AS
+-- Товары в наличии
+CREATE VIEW available_products AS
 SELECT
-  id,
-  artist,
-  album,
-  year,
-  price,
-  quantity,
-  genre,
-  tags,
-  condition,
-  cover_url,
-  shop_links
-FROM cassettes
-WHERE in_stock = true
+  id, type, title, artist, album, year,
+  price, condition, genre, tags,
+  cover_url, images, shop_links, metadata
+FROM products
+WHERE status = 'available'
 ORDER BY created_at DESC;
 
--- Представление для статистики
+-- Статистика по каталогу
 CREATE VIEW catalog_stats AS
 SELECT
-  COUNT(*) as total_cassettes,
-  COUNT(*) FILTER (WHERE in_stock = true) as in_stock_count,
-  SUM(quantity) as total_quantity,
-  AVG(price) as average_price,
-  MIN(price) as min_price,
-  MAX(price) as max_price,
-  COUNT(DISTINCT artist) as unique_artists,
-  COUNT(DISTINCT genre) as unique_genres
-FROM cassettes;
+  COUNT(*)                                        AS total_products,
+  COUNT(*) FILTER (WHERE status = 'available')   AS available_count,
+  COUNT(*) FILTER (WHERE status = 'reserved')    AS reserved_count,
+  COUNT(*) FILTER (WHERE status = 'in_transit')  AS in_transit_count,
+  COUNT(*) FILTER (WHERE status = 'sold')        AS sold_count,
+  COUNT(*) FILTER (WHERE type = 'cassette')      AS cassettes_count,
+  COUNT(*) FILTER (WHERE type = 'cd')            AS cds_count,
+  COUNT(*) FILTER (WHERE type = 'merch')         AS merch_count,
+  AVG(price) FILTER (WHERE status = 'available') AS avg_price,
+  MIN(price) FILTER (WHERE status = 'available') AS min_price,
+  MAX(price) FILTER (WHERE status = 'available') AS max_price,
+  COUNT(DISTINCT artist)                          AS unique_artists
+FROM products;
+
+-- Недавно добавленные (для Telegram-канала)
+CREATE VIEW recently_added AS
+SELECT
+  id, type, title, artist, album, year,
+  price, condition, genre,
+  cover_url, images, shop_links,
+  created_at
+FROM products
+WHERE status = 'available'
+ORDER BY created_at DESC
+LIMIT 20;

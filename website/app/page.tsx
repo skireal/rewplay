@@ -1,29 +1,29 @@
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import { Cassette } from '@/types/supabase'
+import { Product } from '@/types/supabase'
 import Header from './components/Header'
 import { formatPrice } from '@/lib/utils'
 
 export const revalidate = 60
 
-async function getFeaturedCassettes() {
+async function getFeaturedProducts() {
   const { data, error } = await supabase
-    .from('cassettes')
+    .from('products')
     .select('*')
     .eq('status', 'available')
     .order('created_at', { ascending: false })
     .limit(6)
 
   if (error) {
-    console.error('Error fetching cassettes:', error)
+    console.error('Error fetching products:', error)
     return []
   }
 
-  return data as Cassette[]
+  return data as Product[]
 }
 
 export default async function HomePage() {
-  const cassettes = await getFeaturedCassettes()
+  const products = await getFeaturedProducts()
 
   return (
     <>
@@ -55,44 +55,44 @@ export default async function HomePage() {
               Новые поступления
             </h2>
 
-            {cassettes.length === 0 ? (
+            {products.length === 0 ? (
               <div className="empty-state">
-                <p>Кассет пока нет. Добавьте их через админку.</p>
+                <p>Товаров пока нет.</p>
                 <Link href="/admin" className="btn btn--outline btn--sm">
-                  Добавить кассету
+                  Добавить товар
                 </Link>
               </div>
             ) : (
               <div className="catalog-grid">
-                {cassettes.map((cassette) => (
-                  <Link href={`/catalog/${cassette.id}`} key={cassette.id}>
+                {products.map((product) => (
+                  <Link href={`/catalog/${product.id}`} key={product.id}>
                     <article className="cassette-card">
-                      <div className={`cassette-card__image${cassette.cover_url ? ' cassette-card__image--photo' : ''}`}>
-                        {cassette.cover_url && (
+                      <div className={`cassette-card__image${product.cover_url ? ' cassette-card__image--photo' : ''}`}>
+                        {product.cover_url && (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={cassette.cover_url} alt={`${cassette.artist} — ${cassette.album}`} />
+                          <img src={product.cover_url} alt={product.title} />
                         )}
                       </div>
                       <div className="cassette-card__content">
-                        <div className="cassette-card__artist">{cassette.artist}</div>
-                        <h3 className="cassette-card__album">{cassette.album}</h3>
+                        <div className="cassette-card__artist">{product.artist}</div>
+                        <h3 className="cassette-card__album">{product.album ?? product.title}</h3>
                         <div className="cassette-card__meta">
-                          {cassette.year && (
-                            <span className="badge badge--dark">{cassette.year}</span>
+                          {product.year && (
+                            <span className="badge badge--dark">{product.year}</span>
                           )}
-                          {cassette.genre && (
-                            <span className="badge badge--outline">{cassette.genre}</span>
+                          {product.genre && (
+                            <span className="badge badge--outline">{product.genre}</span>
                           )}
                         </div>
-                        {cassette.tags && cassette.tags.length > 0 && (
+                        {product.tags && product.tags.length > 0 && (
                           <div className="tags">
-                            {cassette.tags.slice(0, 3).map((tag, i) => (
+                            {product.tags.slice(0, 3).map((tag, i) => (
                               <span key={i} className="tag">{tag}</span>
                             ))}
                           </div>
                         )}
                         <div className="cassette-card__price">
-                          {formatPrice(cassette.price)}
+                          {product.price != null ? formatPrice(product.price) : ''}
                         </div>
                       </div>
                     </article>
@@ -101,7 +101,7 @@ export default async function HomePage() {
               </div>
             )}
 
-            {cassettes.length > 0 && (
+            {products.length > 0 && (
               <div style={{ textAlign: 'center', marginBottom: '64px' }}>
                 <Link href="/catalog" className="btn btn--outline">
                   Весь каталог

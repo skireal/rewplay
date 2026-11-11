@@ -2,45 +2,43 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Cassette, ShopLinks } from '@/types/supabase'
-import { COVERS_BUCKET } from '@/lib/constants'
+import { Product, ProductType, ShopLinks } from '@/types/supabase'
+import { IMAGES_BUCKET } from '@/lib/constants'
 
 interface Props {
-  cassette?: Cassette
+  product?: Product
   onSuccess?: () => void
 }
 
-export default function AdminForm({ cassette, onSuccess }: Props) {
-  const isEdit = !!cassette
-  const shopLinks = cassette?.shop_links as ShopLinks | null
+export default function AdminForm({ product, onSuccess }: Props) {
+  const isEdit = !!product
+  const shopLinks = product?.shop_links as ShopLinks | null
 
   const [formData, setFormData] = useState({
-    artist:      cassette?.artist      ?? '',
-    album:       cassette?.album       ?? '',
-    year:        cassette?.year?.toString() ?? '',
-    label:       cassette?.label       ?? '',
-    price:       cassette?.price?.toString() ?? '',
-    status:      cassette?.status      ?? 'available',
-    genre:       cassette?.genre       ?? '',
-    condition:   cassette?.condition   ?? 'Новая',
-    description: cassette?.description ?? '',
-    tags:        cassette?.tags?.join(', ') ?? '',
-    ozonLink:    shopLinks?.ozon         ?? '',
-    wbLink:      shopLinks?.wildberries  ?? '',
-    avitoLink:   shopLinks?.avito        ?? '',
+    type:        (product?.type        ?? 'cassette') as ProductType,
+    artist:      product?.artist       ?? '',
+    album:       product?.album        ?? '',
+    year:        product?.year?.toString() ?? '',
+    label:       product?.label        ?? '',
+    price:       product?.price?.toString() ?? '',
+    status:      product?.status       ?? 'available',
+    genre:       product?.genre        ?? '',
+    condition:   product?.condition    ?? 'Б/У',
+    description: product?.description  ?? '',
+    tags:        product?.tags?.join(', ') ?? '',
+    meshokLink:  shopLinks?.meshok     ?? '',
+    avitoLink:   shopLinks?.avito      ?? '',
   })
 
   const [coverFile, setCoverFile] = useState<File | null>(null)
-  const [previewUrl, setPreviewUrl] = useState<string | null>(cassette?.cover_url ?? null)
-  const [existingCoverUrl, setExistingCoverUrl] = useState<string | null>(cassette?.cover_url ?? null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(product?.cover_url ?? null)
+  const [existingCoverUrl, setExistingCoverUrl] = useState<string | null>(product?.cover_url ?? null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  // Храним blob URL чтобы освободить память при смене файла или анмаунте
   const blobUrlRef = useRef<string | null>(null)
 
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
-  // Освобождаем blob URL при анмаунте компонента
   useEffect(() => {
     return () => {
       if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current)
@@ -55,7 +53,6 @@ export default function AdminForm({ cassette, onSuccess }: Props) {
     const file = e.target.files?.[0] ?? null
     setCoverFile(file)
     if (file) {
-      // Освобождаем предыдущий blob URL перед созданием нового
       if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current)
       const url = URL.createObjectURL(file)
       blobUrlRef.current = url
@@ -80,57 +77,58 @@ export default function AdminForm({ cassette, onSuccess }: Props) {
     setMessage(null)
 
     try {
-      // 1. Загружаем новую обложку если выбрана
       let cover_url: string | null = existingCoverUrl
 
       if (coverFile) {
+        const productId = product?.id ?? crypto.randomUUID()
         const ext = coverFile.name.split('.').pop()
-        const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+        const path = `${productId}/cover.${ext}`
 
         const { error: uploadError } = await supabase.storage
-          .from(COVERS_BUCKET)
-          .upload(fileName, coverFile, { cacheControl: '3600', upsert: false })
+          .from(IMAGES_BUCKET)
+          .upload(path, coverFile, { cacheControl: '3600', upsert: true })
 
         if (uploadError) throw uploadError
 
-        const { data: urlData } = supabase.storage.from(COVERS_BUCKET).getPublicUrl(fileName)
+        const { data: urlData } = supabase.storage.from(IMAGES_BUCKET).getPublicUrl(path)
         cover_url = urlData.publicUrl
       }
 
-      // 2. Формируем данные
       const links: Record<string, string> = {}
-      if (formData.ozonLink) links.ozon = formData.ozonLink
-      if (formData.wbLink) links.wildberries = formData.wbLink
-      if (formData.avitoLink) links.avito = formData.avitoLink
+      if (formData.meshokLink) links.meshok = formData.meshokLink
+      if (formData.avitoLink)  links.avito  = formData.avitoLink
 
       const tags = formData.tags
         ? formData.tags.split(',').map(t => t.trim()).filter(t => t)
         : null
 
+      const title = [formData.artist, formData.album].filter(Boolean).join(' – ') || formData.artist || formData.album || 'Без названия'
+
       const payload = {
-        artist:      formData.artist,
-        album:       formData.album,
-        year:        formData.year ? parseInt(formData.year) : null,
-        label:       formData.label || null,
-        price:       parseFloat(formData.price),
-        status:      formData.status as 'available' | 'waiting',
-        genre:       formData.genre || null,
-        condition:   formData.condition,
+        type:        formData.type as ProductType,
+        title,
+        artist:      formData.artist || null,
+        album:       formData.album  || null,
+        year:        formData.year   ? parseInt(formData.year) : null,
+        label:       formData.label  || null,
+        price:       formData.price  ? parseFloat(formData.price) : null,
+        status:      formData.status as Product['status'],
+        genre:       formData.genre  || null,
+        condition:   formData.condition || null,
         description: formData.description || null,
         tags,
         shop_links:  Object.keys(links).length > 0 ? links : null,
         cover_url,
       }
 
-      // 3. Insert или Update
-      if (isEdit && cassette) {
-        const { error } = await supabase.from('cassettes').update(payload).eq('id', cassette.id)
+      if (isEdit && product) {
+        const { error } = await supabase.from('products').update(payload).eq('id', product.id)
         if (error) throw error
-        setMessage({ type: 'success', text: 'Кассета обновлена' })
+        setMessage({ type: 'success', text: 'Товар обновлён' })
       } else {
-        const { error } = await supabase.from('cassettes').insert(payload)
+        const { error } = await supabase.from('products').insert(payload)
         if (error) throw error
-        setMessage({ type: 'success', text: 'Кассета добавлена в каталог' })
+        setMessage({ type: 'success', text: 'Товар добавлен в каталог' })
       }
 
       setTimeout(() => { onSuccess?.() }, 1200)
@@ -159,7 +157,7 @@ export default function AdminForm({ cassette, onSuccess }: Props) {
             {previewUrl ? (
               <div className="upload-preview">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={previewUrl} alt="Превью обложки" className="upload-preview__img" />
+                <img src={previewUrl} alt="Превью" className="upload-preview__img" />
                 <button
                   type="button"
                   className="upload-preview__remove"
@@ -191,24 +189,45 @@ export default function AdminForm({ cassette, onSuccess }: Props) {
 
         <div className="form-grid-2">
           <div className="form-group">
-            <label className="form-label">Исполнитель *</label>
-            <input type="text" name="artist" className="form-input"
-              value={formData.artist} onChange={handleChange}
-              required placeholder="Кино" />
+            <label className="form-label">Тип *</label>
+            <select name="type" className="form-select"
+              value={formData.type} onChange={handleChange}>
+              <option value="cassette">Кассета</option>
+              <option value="cd">CD</option>
+              <option value="merch">Мерч</option>
+            </select>
           </div>
 
           <div className="form-group">
-            <label className="form-label">Альбом *</label>
+            <label className="form-label">Статус</label>
+            <select name="status" className="form-select"
+              value={formData.status} onChange={handleChange}>
+              <option value="available">В наличии</option>
+              <option value="reserved">Зарезервировано</option>
+              <option value="in_transit">В пути</option>
+              <option value="sold">Продано</option>
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Исполнитель</label>
+            <input type="text" name="artist" className="form-input"
+              value={formData.artist} onChange={handleChange}
+              placeholder="Кино" />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Альбом</label>
             <input type="text" name="album" className="form-input"
               value={formData.album} onChange={handleChange}
-              required placeholder="Группа крови" />
+              placeholder="Группа крови" />
           </div>
 
           <div className="form-group">
             <label className="form-label">Год выпуска</label>
             <input type="number" name="year" className="form-input"
               value={formData.year} onChange={handleChange}
-              min="1960" max="2030" placeholder="1988" />
+              min="1950" max="2030" placeholder="1988" />
           </div>
 
           <div className="form-group">
@@ -219,19 +238,10 @@ export default function AdminForm({ cassette, onSuccess }: Props) {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Цена (₽) *</label>
+            <label className="form-label">Цена (₽)</label>
             <input type="number" name="price" className="form-input"
               value={formData.price} onChange={handleChange}
-              required min="0" step="0.01" placeholder="1500" />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Статус</label>
-            <select name="status" className="form-select"
-              value={formData.status} onChange={handleChange}>
-              <option value="available">В наличии</option>
-              <option value="waiting">В ожидании</option>
-            </select>
+              min="0" step="0.01" placeholder="1500" />
           </div>
 
           <div className="form-group">
@@ -246,9 +256,9 @@ export default function AdminForm({ cassette, onSuccess }: Props) {
             <select name="condition" className="form-select"
               value={formData.condition} onChange={handleChange}>
               <option value="Новая">Новая</option>
+              <option value="Б/У">Б/У</option>
               <option value="Б/У Отличное">Б/У Отличное</option>
               <option value="Б/У Хорошее">Б/У Хорошее</option>
-              <option value="Б/У Удовлетворительное">Б/У Удовлетворительное</option>
               <option value="Коллекционная">Коллекционная</option>
             </select>
           </div>
@@ -272,16 +282,10 @@ export default function AdminForm({ cassette, onSuccess }: Props) {
           <p className="form-label" style={{ marginBottom: '20px' }}>Ссылки на магазины</p>
           <div className="form-grid-2">
             <div className="form-group">
-              <label className="form-label">Ozon</label>
-              <input type="url" name="ozonLink" className="form-input"
-                value={formData.ozonLink} onChange={handleChange}
-                placeholder="https://ozon.ru/..." />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Wildberries</label>
-              <input type="url" name="wbLink" className="form-input"
-                value={formData.wbLink} onChange={handleChange}
-                placeholder="https://wildberries.ru/..." />
+              <label className="form-label">Meshok</label>
+              <input type="url" name="meshokLink" className="form-input"
+                value={formData.meshokLink} onChange={handleChange}
+                placeholder="https://meshok.net/item/..." />
             </div>
             <div className="form-group">
               <label className="form-label">Avito</label>
@@ -294,7 +298,7 @@ export default function AdminForm({ cassette, onSuccess }: Props) {
 
         <button type="submit" className="btn" disabled={loading}
           style={{ width: '100%', fontSize: '16px', padding: '16px', opacity: loading ? 0.7 : 1 }}>
-          {loading ? 'Сохранение...' : isEdit ? 'Сохранить изменения' : 'Добавить кассету'}
+          {loading ? 'Сохранение...' : isEdit ? 'Сохранить изменения' : 'Добавить товар'}
         </button>
       </form>
     </>

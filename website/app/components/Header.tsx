@@ -1,12 +1,10 @@
 import Link from 'next/link'
-import fs from 'fs'
-import path from 'path'
+import logoRaw from '@/public/logo.svg'
 import { cookies } from 'next/headers'
 import { ADMIN_TOKEN_COOKIE } from '@/lib/constants'
 
-// Читаем и трансформируем SVG один раз при старте сервера
-const svgPath = path.join(process.cwd(), 'public', 'logo.svg')
-const cachedSvg = fs.readFileSync(svgPath, 'utf-8')
+// SVG подключается как строка на этапе сборки (без fs — работает на Cloudflare)
+const cachedSvg = (logoRaw as string)
   .replace('id="path44"', 'id="path44" class="logo-star"')
   .replace('id="path45"', 'id="path45" class="logo-star"')
   .replace(/(<svg[^>]*)(width="[^"]*")/, '$1width="100%"')

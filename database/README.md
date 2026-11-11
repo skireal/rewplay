@@ -1,172 +1,126 @@
 # База данных Rewplay
 
-Схема базы данных для каталога аудиокассет.
+Универсальная схема для кассет, CD и мерча. Единая БД для сайта, Telegram-канала и Excel-экспорта.
 
-## Структура таблицы `cassettes`
+## Таблица `products`
 
-### Основные поля:
+### Тип товара (`type`)
 
-| Поле | Тип | Описание | Обязательное |
-|------|-----|----------|--------------|
-| `id` | UUID | Уникальный идентификатор | Да (авто) |
-| `artist` | VARCHAR(255) | Исполнитель | Да |
-| `album` | VARCHAR(255) | Название альбома | Да |
-| `year` | INTEGER | Год выпуска (1960-2030) | Нет |
-| `label` | VARCHAR(255) | Лейбл/издатель | Нет |
-| `catalog_number` | VARCHAR(100) | Каталожный номер | Нет |
+| Значение    | Описание          |
+|-------------|-------------------|
+| `cassette`  | Аудиокассета      |
+| `cd`        | Компакт-диск      |
+| `merch`     | Мерч              |
 
-### Цена и наличие:
+### Статус (`status`)
 
-| Поле | Тип | Описание | Обязательное |
-|------|-----|----------|--------------|
-| `price` | DECIMAL(10,2) | Цена в рублях | Да |
-| `in_stock` | BOOLEAN | В наличии | Да (default: true) |
-| `quantity` | INTEGER | Количество штук | Да (default: 1) |
+| Значение     | Описание                        |
+|--------------|---------------------------------|
+| `available`  | В наличии, выставлен на продажу |
+| `reserved`   | Забронирован покупателем        |
+| `in_transit` | Едет к нам (ещё не получен)     |
+| `sold`       | Продан                          |
 
-### Медиа:
+### Основные поля
 
-| Поле | Тип | Описание |
-|------|-----|----------|
-| `cover_url` | TEXT | URL обложки альбома |
-| `images` | JSONB | Дополнительные фото (массив URL) |
+| Поле             | Тип           | Описание                             |
+|------------------|---------------|--------------------------------------|
+| `id`             | UUID          | Уникальный ID (авто)                 |
+| `type`           | VARCHAR       | Тип товара                           |
+| `status`         | VARCHAR       | Статус                               |
+| `title`          | TEXT          | Полный заголовок лота                |
+| `artist`         | VARCHAR       | Исполнитель / группа                 |
+| `album`          | VARCHAR       | Альбом (для кассет и CD)             |
+| `year`           | INTEGER       | Год выпуска                          |
+| `label`          | VARCHAR       | Лейбл                                |
+| `catalog_number` | VARCHAR       | Каталожный номер                     |
+| `price`          | DECIMAL       | Цена                                 |
+| `quantity`       | INTEGER       | Количество (обычно 1)                |
+| `condition`      | VARCHAR       | Состояние                            |
+| `genre`          | VARCHAR       | Жанр                                 |
+| `tags`           | TEXT[]        | Теги                                 |
+| `description`    | TEXT          | Описание (публичное)                 |
+| `notes`          | TEXT          | Внутренние заметки (не для публики)  |
+| `cover_url`      | TEXT          | Главное фото (Supabase Storage URL)  |
+| `images`         | JSONB         | Массив доп. фото                     |
+| `shop_links`     | JSONB         | Ссылки на площадки                   |
+| `meshok_id`      | BIGINT        | ID лота на meshok.net                |
+| `meshok_end_date`| TIMESTAMPTZ   | Дата окончания лота на мешке         |
+| `metadata`       | JSONB         | Специфичные поля по типу             |
 
-Пример `images`:
+### `metadata` по типу товара
+
+**Мерч:**
 ```json
-["https://example.com/img1.jpg", "https://example.com/img2.jpg"]
+{
+  "item_type": "t-shirt",
+  "size": "L",
+  "color": "black"
+}
 ```
 
-### Описание:
+**Кассеты/CD** — пока пустой `{}`, расширяется по необходимости.
 
-| Поле | Тип | Описание |
-|------|-----|----------|
-| `description` | TEXT | Подробное описание |
-| `condition` | VARCHAR(50) | Состояние кассеты |
-| `notes` | TEXT | Дополнительные заметки |
+### `shop_links`
 
-Варианты `condition`:
+```json
+{
+  "meshok": "https://meshok.net/item/123",
+  "avito":  "https://avito.ru/item/456",
+  "ebay":   "https://ebay.com/itm/789"
+}
+```
+
+### `images`
+
+Массив постоянных URL из Supabase Storage:
+```json
+[
+  "https://xxx.supabase.co/storage/v1/object/public/products/cassette-uuid/1.jpg",
+  "https://xxx.supabase.co/storage/v1/object/public/products/cassette-uuid/2.jpg"
+]
+```
+
+## Состояние (`condition`)
+
 - `Новая`
 - `Б/У Отличное`
 - `Б/У Хорошее`
 - `Б/У Удовлетворительное`
 - `Коллекционная`
 
-### Ссылки на магазины:
-
-| Поле | Тип | Описание |
-|------|-----|----------|
-| `shop_links` | JSONB | Ссылки на торговые площадки |
-
-Пример `shop_links`:
-```json
-{
-  "ozon": "https://ozon.ru/product/123",
-  "wildberries": "https://wildberries.ru/catalog/456",
-  "avito": "https://avito.ru/item/789"
-}
-```
-
-### Категоризация:
-
-| Поле | Тип | Описание |
-|------|-----|----------|
-| `tags` | TEXT[] | Массив тегов |
-| `genre` | VARCHAR(100) | Основной жанр |
-
-Пример `tags`:
-```sql
-ARRAY['русский рок', 'классика', '80-е', 'раритет']
-```
-
-### Метаданные:
-
-| Поле | Тип | Описание |
-|------|-----|----------|
-| `created_at` | TIMESTAMP | Дата добавления (авто) |
-| `updated_at` | TIMESTAMP | Дата обновления (авто) |
-| `search_vector` | TSVECTOR | Для полнотекстового поиска (авто) |
-
-## Дополнительные таблицы
-
-### `price_history`
-
-Автоматически логирует изменения цены:
-
-| Поле | Тип | Описание |
-|------|-----|----------|
-| `id` | UUID | ID записи |
-| `cassette_id` | UUID | Ссылка на кассету |
-| `old_price` | DECIMAL | Старая цена |
-| `new_price` | DECIMAL | Новая цена |
-| `changed_at` | TIMESTAMP | Время изменения |
-
 ## Представления (Views)
 
-### `available_cassettes`
-Быстрый доступ к товарам в наличии, отсортированным по дате добавления.
-
-### `catalog_stats`
-Статистика по каталогу:
-- Общее количество кассет
-- Количество в наличии
-- Средняя/мин/макс цена
-- Количество уникальных исполнителей и жанров
-
-## Индексы
-
-Созданы индексы для быстрого поиска:
-- По исполнителю
-- По альбому
-- По наличию
-- По цене
-- По году
-- По жанру
-- По тегам (GIN индекс)
-- Полнотекстовый поиск (GIN индекс)
+| View                 | Описание                                  |
+|----------------------|-------------------------------------------|
+| `available_products` | Товары со статусом `available`            |
+| `recently_added`     | Последние 20 добавленных (для TG-канала) |
+| `catalog_stats`      | Статистика по всему каталогу              |
 
 ## Установка в Supabase
 
-1. Зайдите в Supabase Dashboard
-2. Выберите ваш проект
-3. Перейдите в SQL Editor
-4. Скопируйте содержимое `schema.sql`
-5. Выполните запрос
-6. Готово! Таблицы созданы
+1. Зайди в Supabase Dashboard → твой проект
+2. **SQL Editor** → New query
+3. Скопируй содержимое `schema.sql` и выполни
+4. В **Storage** создай публичный bucket с именем `products`
 
 ## Примеры запросов
 
-### Получить все кассеты в наличии:
 ```sql
-SELECT * FROM available_cassettes;
-```
+-- Все кассеты в наличии
+SELECT * FROM available_products WHERE type = 'cassette';
 
-### Поиск по исполнителю:
-```sql
-SELECT * FROM cassettes
-WHERE artist ILIKE '%кино%'
-AND in_stock = true;
-```
+-- Всё, что едет к нам
+SELECT title, artist, price FROM products WHERE status = 'in_transit';
 
-### Полнотекстовый поиск:
-```sql
-SELECT * FROM cassettes
-WHERE search_vector @@ to_tsquery('russian', 'рок & 80');
-```
+-- Поиск
+SELECT * FROM products
+WHERE search_vector @@ to_tsquery('russian', 'joy & division');
 
-### Фильтр по жанру и цене:
-```sql
-SELECT * FROM cassettes
-WHERE genre = 'Рок'
-AND price BETWEEN 1000 AND 2000
-AND in_stock = true;
-```
+-- Мерч размера L
+SELECT * FROM products
+WHERE type = 'merch' AND metadata->>'size' = 'L';
 
-### Поиск по тегам:
-```sql
-SELECT * FROM cassettes
-WHERE tags @> ARRAY['классика'];
-```
-
-### Получить статистику:
-```sql
+-- Статистика
 SELECT * FROM catalog_stats;
 ```

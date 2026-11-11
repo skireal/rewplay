@@ -1,26 +1,26 @@
 import { supabase } from '@/lib/supabase'
-import { Cassette } from '@/types/supabase'
+import { Product } from '@/types/supabase'
 import Header from '../components/Header'
 import CatalogClient from './CatalogClient'
 
 export const revalidate = 30
 
-async function getAllCassettes() {
+async function getAllProducts() {
   const { data, error } = await supabase
-    .from('cassettes')
+    .from('products')
     .select('*')
     .order('created_at', { ascending: false })
 
   if (error) {
-    console.error('Error fetching cassettes:', error)
+    console.error('Error fetching products:', error)
     return []
   }
 
-  return data as Cassette[]
+  return data as Product[]
 }
 
 export default async function CatalogPage() {
-  const cassettes = await getAllCassettes()
+  const products = await getAllProducts()
 
   return (
     <>
@@ -33,7 +33,7 @@ export default async function CatalogPage() {
             Каталог
           </h1>
 
-          <CatalogClient cassettes={cassettes} />
+          <CatalogClient products={products} />
         </div>
       </main>
 

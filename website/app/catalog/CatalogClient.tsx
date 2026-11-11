@@ -2,13 +2,13 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { Cassette } from '@/types/supabase'
+import { Product, STATUS_LABELS, STATUS_BADGE_CLASS } from '@/types/supabase'
 import { isNew, formatPrice } from '@/lib/utils'
 
 type StockFilter = 'all' | 'available'
 type SortBy = 'date_desc' | 'price_asc' | 'price_desc' | 'name_asc'
 
-export default function CatalogClient({ cassettes }: { cassettes: Cassette[] }) {
+export default function CatalogClient({ products }: { products: Product[] }) {
   const [query, setQuery] = useState('')
   const [stockFilter, setStockFilter] = useState<StockFilter>('all')
   const [genreFilter, setGenreFilter] = useState<string>('all')
@@ -16,43 +16,43 @@ export default function CatalogClient({ cassettes }: { cassettes: Cassette[] }) 
 
   const genres = useMemo(() => {
     const set = new Set<string>()
-    cassettes.forEach(c => { if (c.genre) set.add(c.genre) })
+    products.forEach(p => { if (p.genre) set.add(p.genre) })
     return Array.from(set).sort()
-  }, [cassettes])
+  }, [products])
 
   const hasFilters = query || stockFilter !== 'all' || genreFilter !== 'all'
 
   const filtered = useMemo(() => {
-    const result = cassettes.filter((c) => {
-      if (stockFilter === 'available' && c.status !== 'available') return false
-      if (genreFilter !== 'all' && c.genre !== genreFilter) return false
+    const result = products.filter((p) => {
+      if (stockFilter === 'available' && p.status !== 'available') return false
+      if (genreFilter !== 'all' && p.genre !== genreFilter) return false
       if (query.trim()) {
         const q = query.toLowerCase()
         return (
-          c.artist.toLowerCase().includes(q) ||
-          c.album.toLowerCase().includes(q) ||
-          (c.genre?.toLowerCase().includes(q)) ||
-          (c.tags?.some(t => t.toLowerCase().includes(q)))
+          (p.artist?.toLowerCase().includes(q)) ||
+          (p.album?.toLowerCase().includes(q)) ||
+          p.title.toLowerCase().includes(q) ||
+          (p.genre?.toLowerCase().includes(q)) ||
+          (p.tags?.some(t => t.toLowerCase().includes(q)))
         )
       }
       return true
     })
 
-    // Пре-вычисляем timestamps один раз вместо O(N log N) парсинга дат в компараторе
     if (sortBy === 'date_desc') {
-      const ts = new Map(result.map(c => [c.id, new Date(c.created_at).getTime()]))
+      const ts = new Map(result.map(p => [p.id, new Date(p.created_at).getTime()]))
       return result.sort((a, b) => ts.get(b.id)! - ts.get(a.id)!)
     }
 
     return result.sort((a, b) => {
       switch (sortBy) {
-        case 'price_asc':  return a.price - b.price
-        case 'price_desc': return b.price - a.price
-        case 'name_asc':   return a.artist.localeCompare(b.artist, 'ru')
+        case 'price_asc':  return (a.price ?? 0) - (b.price ?? 0)
+        case 'price_desc': return (b.price ?? 0) - (a.price ?? 0)
+        case 'name_asc':   return (a.artist ?? a.title).localeCompare(b.artist ?? b.title, 'ru')
         default:           return 0
       }
     })
-  }, [cassettes, query, stockFilter, genreFilter, sortBy])
+  }, [products, query, stockFilter, genreFilter, sortBy])
 
   const resetAll = () => {
     setQuery('')
@@ -86,7 +86,6 @@ export default function CatalogClient({ cassettes }: { cassettes: Cassette[] }) 
 
       {/* Фильтры + Сортировка */}
       <div className="filters">
-        {/* Наличие */}
         <div className="filter-group">
           <button
             className={`filter-chip ${stockFilter === 'all' ? 'filter-chip--active' : ''}`}
@@ -102,7 +101,6 @@ export default function CatalogClient({ cassettes }: { cassettes: Cassette[] }) 
           </button>
         </div>
 
-        {/* Жанры */}
         {genres.length > 0 && (
           <div className="filter-group">
             <button
@@ -123,14 +121,12 @@ export default function CatalogClient({ cassettes }: { cassettes: Cassette[] }) 
           </div>
         )}
 
-        {/* Сброс */}
         {hasFilters && (
           <button className="filter-reset" onClick={resetAll}>
             Сбросить всё
           </button>
         )}
 
-        {/* Сортировка */}
         <div className="sort-select-wrap">
           <select
             className="sort-select"
@@ -145,7 +141,6 @@ export default function CatalogClient({ cassettes }: { cassettes: Cassette[] }) 
         </div>
       </div>
 
-      {/* Статистика — только при активных фильтрах */}
       {hasFilters && (
         <div className="catalog-stats">
           <strong>{filtered.length}</strong> {filtered.length === 1 ? 'результат' : 'результатов'}
@@ -153,7 +148,6 @@ export default function CatalogClient({ cassettes }: { cassettes: Cassette[] }) 
         </div>
       )}
 
-      {/* Сетка */}
       {filtered.length === 0 ? (
         <div className="empty-state">
           <p>Ничего не найдено</p>
@@ -163,39 +157,39 @@ export default function CatalogClient({ cassettes }: { cassettes: Cassette[] }) 
         </div>
       ) : (
         <div className="catalog-grid">
-          {filtered.map((cassette) => (
-            <Link href={`/catalog/${cassette.id}`} key={cassette.id}>
+          {filtered.map((product) => (
+            <Link href={`/catalog/${product.id}`} key={product.id}>
               <article className="cassette-card">
-                <div className={`cassette-card__image${cassette.cover_url ? ' cassette-card__image--photo' : ''}`}>
-                  {cassette.cover_url && (
+                <div className={`cassette-card__image${product.cover_url ? ' cassette-card__image--photo' : ''}`}>
+                  {product.cover_url && (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={cassette.cover_url} alt={`${cassette.artist} — ${cassette.album}`} />
+                    <img src={product.cover_url} alt={product.title} />
                   )}
-                  {isNew(cassette.created_at) && (
+                  {isNew(product.created_at) && (
                     <span className="badge-new">Новинка</span>
                   )}
                 </div>
                 <div className="cassette-card__content">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
-                    <div className="cassette-card__artist">{cassette.artist}</div>
-                    <span className={`stock-badge ${cassette.status === 'available' ? 'stock-badge--in' : 'stock-badge--wait'}`}>
-                      {cassette.status === 'available' ? 'в наличии' : 'в ожидании'}
+                    <div className="cassette-card__artist">{product.artist}</div>
+                    <span className={`stock-badge ${STATUS_BADGE_CLASS[product.status]}`}>
+                      {STATUS_LABELS[product.status]}
                     </span>
                   </div>
-                  <h3 className="cassette-card__album">{cassette.album}</h3>
+                  <h3 className="cassette-card__album">{product.album ?? product.title}</h3>
                   <div className="cassette-card__meta">
-                    {cassette.year && <span className="badge badge--dark">{cassette.year}</span>}
-                    {cassette.genre && <span className="badge badge--outline">{cassette.genre}</span>}
+                    {product.year && <span className="badge badge--dark">{product.year}</span>}
+                    {product.genre && <span className="badge badge--outline">{product.genre}</span>}
                   </div>
-                  {cassette.tags && cassette.tags.length > 0 && (
+                  {product.tags && product.tags.length > 0 && (
                     <div className="tags">
-                      {cassette.tags.slice(0, 4).map((tag, i) => (
+                      {product.tags.slice(0, 4).map((tag, i) => (
                         <span key={i} className="tag">{tag}</span>
                       ))}
                     </div>
                   )}
                   <div className="cassette-card__price">
-                    {formatPrice(cassette.price)}
+                    {product.price != null ? formatPrice(product.price) : ''}
                   </div>
                 </div>
               </article>

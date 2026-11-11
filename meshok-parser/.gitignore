@@ -1,0 +1,9 @@
+.env
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+venv/
+debug_seller.*
+meshok_lots.html

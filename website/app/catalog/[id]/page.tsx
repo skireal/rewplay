@@ -1,31 +1,32 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Cassette, ShopLinks } from '@/types/supabase'
+import { Product, ShopLinks, STATUS_LABELS, STATUS_BADGE_CLASS } from '@/types/supabase'
 import Header from '../../components/Header'
 import { isNew, formatPrice } from '@/lib/utils'
 
 export const revalidate = 30
 
-async function getCassette(id: string) {
+async function getProduct(id: string) {
   const { data, error } = await supabase
-    .from('cassettes')
+    .from('products')
     .select('*')
     .eq('id', id)
     .single()
 
   if (error || !data) return null
 
-  return data as Cassette
+  return data as Product
 }
 
-export default async function CassettePage({ params }: { params: { id: string } }) {
-  const cassette = await getCassette(params.id)
+export default async function ProductPage({ params }: { params: { id: string } }) {
+  const product = await getProduct(params.id)
 
-  if (!cassette) notFound()
+  if (!product) notFound()
 
-  const shopLinks = cassette.shop_links as ShopLinks | null
-  const cassetteIsNew = isNew(cassette.created_at)
+  const shopLinks = product.shop_links as ShopLinks | null
+  const productIsNew = isNew(product.created_at)
+  const images = Array.isArray(product.images) ? product.images as string[] : []
 
   return (
     <>
@@ -41,72 +42,87 @@ export default async function CassettePage({ params }: { params: { id: string } 
           <div className="detail-grid">
             {/* Image */}
             <div style={{ position: 'relative' }}>
-              {cassette.cover_url ? (
+              {product.cover_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={cassette.cover_url}
-                  alt={`${cassette.artist} — ${cassette.album}`}
+                  src={product.cover_url}
+                  alt={product.title}
                   className="detail-image detail-image--photo"
                 />
               ) : (
                 <div className="detail-image" />
               )}
-              {cassetteIsNew && <span className="badge-new badge-new--lg">Новинка</span>}
+              {productIsNew && <span className="badge-new badge-new--lg">Новинка</span>}
+
+              {/* Дополнительные фото */}
+              {images.length > 1 && (
+                <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap' }}>
+                  {images.slice(1).map((url, i) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      key={i}
+                      src={url}
+                      alt={`${product.title} фото ${i + 2}`}
+                      style={{ width: '72px', height: '72px', objectFit: 'cover', borderRadius: '4px', cursor: 'pointer' }}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Info */}
             <div>
-              <div className="detail-artist">{cassette.artist}</div>
-              <h1 className="detail-album">{cassette.album}</h1>
+              <div className="detail-artist">{product.artist}</div>
+              <h1 className="detail-album">{product.album ?? product.title}</h1>
 
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '4px' }}>
-                {cassette.year && (
-                  <span className="badge badge--dark">{cassette.year}</span>
+                {product.year && (
+                  <span className="badge badge--dark">{product.year}</span>
                 )}
-                {cassette.genre && (
-                  <span className="badge badge--outline">{cassette.genre}</span>
+                {product.genre && (
+                  <span className="badge badge--outline">{product.genre}</span>
                 )}
-                <span className={`stock-badge ${cassette.status === 'available' ? 'stock-badge--in' : 'stock-badge--wait'}`}>
-                  {cassette.status === 'available' ? 'В наличии' : 'В ожидании'}
+                <span className={`stock-badge ${STATUS_BADGE_CLASS[product.status]}`}>
+                  {STATUS_LABELS[product.status]}
                 </span>
               </div>
 
               <div className="detail-price">
-                {formatPrice(cassette.price)}
+                {product.price != null ? formatPrice(product.price) : ''}
               </div>
 
               {/* Details */}
-              {(cassette.label || cassette.catalog_number || cassette.condition) && (
+              {(product.label || product.catalog_number || product.condition) && (
                 <div className="detail-section">
                   <h3>Характеристики</h3>
                   <div className="detail-meta-row">
-                    {cassette.label && (
-                      <p><strong>Лейбл</strong>{cassette.label}</p>
+                    {product.label && (
+                      <p><strong>Лейбл</strong>{product.label}</p>
                     )}
-                    {cassette.catalog_number && (
-                      <p><strong>Каталожный №</strong>{cassette.catalog_number}</p>
+                    {product.catalog_number && (
+                      <p><strong>Каталожный №</strong>{product.catalog_number}</p>
                     )}
-                    {cassette.condition && (
-                      <p><strong>Состояние</strong>{cassette.condition}</p>
+                    {product.condition && (
+                      <p><strong>Состояние</strong>{product.condition}</p>
                     )}
                   </div>
                 </div>
               )}
 
               {/* Description */}
-              {cassette.description && (
+              {product.description && (
                 <div className="detail-section">
                   <h3>Описание</h3>
-                  <p>{cassette.description}</p>
+                  <p style={{ whiteSpace: 'pre-line' }}>{product.description}</p>
                 </div>
               )}
 
               {/* Tags */}
-              {cassette.tags && cassette.tags.length > 0 && (
+              {product.tags && product.tags.length > 0 && (
                 <div className="detail-section">
                   <h3>Теги</h3>
                   <div className="tags">
-                    {cassette.tags.map((tag, i) => (
+                    {product.tags.map((tag, i) => (
                       <span key={i} className="tag" style={{ fontSize: '11px' }}>{tag}</span>
                     ))}
                   </div>
@@ -116,21 +132,21 @@ export default async function CassettePage({ params }: { params: { id: string } 
               {/* Shop Links */}
               {shopLinks && Object.keys(shopLinks).length > 0 && (
                 <div className="detail-section">
-                  <h3>Где купить</h3>
+                  <h3>Купить</h3>
                   <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '4px' }}>
-                    {shopLinks.ozon && (
-                      <a href={shopLinks.ozon} target="_blank" rel="noopener noreferrer" className="btn btn--sm">
-                        Ozon
-                      </a>
-                    )}
-                    {shopLinks.wildberries && (
-                      <a href={shopLinks.wildberries} target="_blank" rel="noopener noreferrer" className="btn btn--sm btn--outline">
-                        Wildberries
+                    {shopLinks.meshok && (
+                      <a href={shopLinks.meshok} target="_blank" rel="noopener noreferrer" className="btn btn--sm">
+                        Meshok
                       </a>
                     )}
                     {shopLinks.avito && (
                       <a href={shopLinks.avito} target="_blank" rel="noopener noreferrer" className="btn btn--sm btn--outline">
                         Avito
+                      </a>
+                    )}
+                    {shopLinks.ozon && (
+                      <a href={shopLinks.ozon} target="_blank" rel="noopener noreferrer" className="btn btn--sm btn--outline">
+                        Ozon
                       </a>
                     )}
                   </div>
