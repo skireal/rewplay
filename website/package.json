@@ -7,23 +7,32 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "cf:build": "opennextjs-cloudflare build",
+    "cf:preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "cf:deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "import:avito": "node scripts/import-avito.mjs",
     "import:avito:dry": "node scripts/import-avito.mjs --dry-run",
     "images:gen": "node scripts/gen-image-script.mjs",
     "images:update": "node scripts/update-images.mjs"
   },
   "dependencies": {
-    "next": "^14.0.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "@supabase/supabase-js": "^2.38.0"
+    "@opennextjs/cloudflare": "^1.20.16",
+    "@supabase/supabase-js": "^2.38.0",
+    "next": "^15.5.29",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "@types/react": "^18.2.0",
-    "@types/react-dom": "^18.2.0",
-    "typescript": "^5.0.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "eslint": "^8.0.0",
-    "eslint-config-next": "^14.0.0"
+    "eslint-config-next": "^15.5.29",
+    "rclone.js": "^0.6.6",
+    "typescript": "^5.0.0",
+    "wrangler": "^4.148.0"
+  },
+  "volta": {
+    "node": "20.20.2"
   }
 }

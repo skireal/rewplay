@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Product, ShopLinks, STATUS_LABELS, STATUS_BADGE_CLASS } from '@/types/supabase'
 import Header from '../../components/Header'
+import ProductGallery from './ProductGallery'
 import { isNew, formatPrice } from '@/lib/utils'
 
 export const revalidate = 30
@@ -19,8 +20,9 @@ async function getProduct(id: string) {
   return data as Product
 }
 
-export default async function ProductPage({ params }: { params: { id: string } }) {
-  const product = await getProduct(params.id)
+export default async function ProductPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const product = await getProduct(id)
 
   if (!product) notFound()
 
@@ -42,32 +44,12 @@ export default async function ProductPage({ params }: { params: { id: string } }
           <div className="detail-grid">
             {/* Image */}
             <div style={{ position: 'relative' }}>
-              {product.cover_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={product.cover_url}
-                  alt={product.title}
-                  className="detail-image detail-image--photo"
-                />
-              ) : (
-                <div className="detail-image" />
-              )}
+              <ProductGallery
+                title={product.title}
+                coverUrl={product.cover_url}
+                images={images}
+              />
               {productIsNew && <span className="badge-new badge-new--lg">Новинка</span>}
-
-              {/* Дополнительные фото */}
-              {images.length > 1 && (
-                <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap' }}>
-                  {images.slice(1).map((url, i) => (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      key={i}
-                      src={url}
-                      alt={`${product.title} фото ${i + 2}`}
-                      style={{ width: '72px', height: '72px', objectFit: 'cover', borderRadius: '4px', cursor: 'pointer' }}
-                    />
-                  ))}
-                </div>
-              )}
             </div>
 
             {/* Info */}

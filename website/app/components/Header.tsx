@@ -19,8 +19,8 @@ function LogoSvg() {
   )
 }
 
-export default function Header() {
-  const token = cookies().get(ADMIN_TOKEN_COOKIE)?.value
+export default async function Header() {
+  const token = (await cookies()).get(ADMIN_TOKEN_COOKIE)?.value
   const isAdmin = !!token && token === process.env.ADMIN_SECRET
 
   return (
