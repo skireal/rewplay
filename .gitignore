@@ -40,3 +40,6 @@ env/
 *.egg-info/
 dist/
 build/
+
+# Claude Code worktrees
+.claude/worktrees/
