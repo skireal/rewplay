@@ -1,29 +1,24 @@
-import Link from 'next/link'
-import { supabase } from '@/lib/supabase'
-import { Product } from '@/types/supabase'
-import Header from './components/Header'
-import { formatPrice } from '@/lib/utils'
+import Link from 'next/link';
+import { supabase } from '@/lib/supabase';
+import { Product } from '@/types/supabase';
+import Header from './components/Header';
+import { formatPrice } from '@/lib/utils';
 
-export const revalidate = 60
+export const revalidate = 60;
 
 async function getFeaturedProducts() {
-  const { data, error } = await supabase
-    .from('products')
-    .select('*')
-    .eq('status', 'available')
-    .order('created_at', { ascending: false })
-    .limit(6)
+  const { data, error } = await supabase.from('products').select('*').eq('status', 'available').order('created_at', { ascending: false }).limit(6);
 
   if (error) {
-    console.error('Error fetching products:', error)
-    return []
+    console.error('Error fetching products:', error);
+    return [];
   }
 
-  return data as Product[]
+  return data as Product[];
 }
 
 export default async function HomePage() {
-  const products = await getFeaturedProducts()
+  const products = await getFeaturedProducts();
 
   return (
     <>
@@ -35,12 +30,11 @@ export default async function HomePage() {
           <div className="container">
             <div className="hero__eyebrow">Vintage &amp; Rare</div>
             <h1>
-              Аудио<br />
+              Аудио
+              <br />
               <em>Кассеты</em>
             </h1>
-            <p className="hero__sub">
-              Коллекция раритетных кассет и дисков: пост-панк, инди и альтернатива — от 80-х до 2000-х
-            </p>
+            <p className="hero__sub">Магазин раритетных кассет и дисков: пост-панк, инди и альтернатива — от 80-х до 2000-х</p>
             <Link href="/catalog" className="btn">
               Смотреть каталог
             </Link>
@@ -77,23 +71,19 @@ export default async function HomePage() {
                         <div className="cassette-card__artist">{product.artist}</div>
                         <h3 className="cassette-card__album">{product.album ?? product.title}</h3>
                         <div className="cassette-card__meta">
-                          {product.year && (
-                            <span className="badge badge--dark">{product.year}</span>
-                          )}
-                          {product.genre && (
-                            <span className="badge badge--outline">{product.genre}</span>
-                          )}
+                          {product.year && <span className="badge badge--dark">{product.year}</span>}
+                          {product.genre && <span className="badge badge--outline">{product.genre}</span>}
                         </div>
                         {product.tags && product.tags.length > 0 && (
                           <div className="tags">
                             {product.tags.slice(0, 3).map((tag, i) => (
-                              <span key={i} className="tag">{tag}</span>
+                              <span key={i} className="tag">
+                                {tag}
+                              </span>
                             ))}
                           </div>
                         )}
-                        <div className="cassette-card__price">
-                          {product.price != null ? formatPrice(product.price) : ''}
-                        </div>
+                        <div className="cassette-card__price">{product.price != null ? formatPrice(product.price) : ''}</div>
                       </div>
                     </article>
                   </Link>
@@ -121,5 +111,5 @@ export default async function HomePage() {
         </div>
       </footer>
     </>
-  )
+  );
 }

@@ -1,11 +1,11 @@
 :root {
-  --cream: #F0EBE0;
-  --cream-dark: #E2D9CC;
-  --red: #C8171A;
-  --red-dark: #A0110F;
-  --black: #1A120A;
-  --white: #FAFAF6;
-  --muted: #8A7A6E;
+  --cream: #f0ebe0;
+  --cream-dark: #e2d9cc;
+  --red: #c8171a;
+  --red-dark: #a0110f;
+  --black: #1a120a;
+  --white: #fafaf6;
+  --muted: #8a7a6e;
   --font-oswald: 'Oswald', sans-serif;
   --font-lora: 'Lora', Georgia, serif;
   --font-mono: 'IBM Plex Mono', 'Courier New', monospace;
@@ -17,7 +17,8 @@
   margin: 0;
 }
 
-html, body {
+html,
+body {
   max-width: 100vw;
   overflow-x: clip;
   background-color: var(--cream);
@@ -82,8 +83,12 @@ a {
 }
 
 @keyframes logo-star-spin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .nav {
@@ -121,7 +126,9 @@ a {
 .hero::after {
   content: '';
   position: absolute;
-  bottom: 0; left: 0; right: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
   height: 3px;
   background: var(--black);
 }
@@ -213,7 +220,9 @@ a {
   border: 2.5px solid var(--black);
   overflow: hidden;
   display: block;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .cassette-card:hover {
@@ -320,7 +329,7 @@ a {
 
 .badge--in {
   background: var(--black);
-  color: #7FD980;
+  color: #7fd980;
   border-color: var(--black);
 }
 
@@ -343,7 +352,7 @@ a {
 
 .stock-badge--in {
   background: var(--black);
-  color: #7FD980;
+  color: #7fd980;
   border-color: var(--black);
 }
 
@@ -355,8 +364,8 @@ a {
 
 .stock-badge--wait {
   background: transparent;
-  color: #C08000;
-  border-color: #C08000;
+  color: #c08000;
+  border-color: #c08000;
 }
 
 /* ─── TAGS ─── */
@@ -396,7 +405,10 @@ a {
   color: var(--white);
   border: 2.5px solid var(--black);
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.15s ease;
   position: relative;
 }
 
@@ -433,7 +445,9 @@ a {
   font-size: 15px;
   color: var(--black);
   border-radius: 0;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
   appearance: none;
 }
 
@@ -473,7 +487,7 @@ a {
 .detail-image--photo {
   background-image: none;
   background-color: var(--black);
-  object-fit: cover;
+  object-fit: contain;
   display: block;
 }
 
@@ -643,7 +657,9 @@ a {
   background: transparent;
   color: var(--black);
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
   white-space: nowrap;
 }
 
@@ -667,7 +683,9 @@ a {
   background: transparent;
   color: var(--red);
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
   margin-left: auto;
 }
 
@@ -848,14 +866,14 @@ a {
 }
 
 .alert--success {
-  border-color: #2D6A2D;
-  background: #EDF7ED;
-  color: #2D6A2D;
+  border-color: #2d6a2d;
+  background: #edf7ed;
+  color: #2d6a2d;
 }
 
 .alert--error {
   border-color: var(--red);
-  background: #FDEAEA;
+  background: #fdeaea;
   color: var(--red-dark);
 }
 
@@ -1033,7 +1051,9 @@ a {
   width: 100%;
   border: 2px dashed var(--black);
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
 }
 
 .upload-area:hover {
